@@ -1,0 +1,25 @@
+{
+    "name": "test",
+    "description": "RTLD simple test",
+    "homepage": "",
+    "license": "BSL-1.0",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "dependencies": {
+        "rtld": { "path": "../.." }
+    },
+    
+    "importPaths": [
+        "src"
+    ],
+    
+    "sourcePaths": [
+        "src"
+    ],
+    
+    "buildRequirements": [
+        "allowWarnings"
+    ],
+    "lflags-linux": ["-rpath=$$ORIGIN"]
+}

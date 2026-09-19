@@ -1,0 +1,36 @@
+{
+    "name": "test",
+    "description": "RTLD simple test",
+    "homepage": "",
+    "license": "BSL-1.0",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "dependencies": {
+        "rtld": { "path": "../.." },
+        "rtld:runtime": { "path": "../.." }
+    },
+    "subConfigurations": {
+        "rtld": "no-druntime"
+    },
+    
+    "importPaths": [
+        "src"
+    ],
+    
+    "sourcePaths": [
+        "src"
+    ],
+    
+    "buildRequirements": [
+        "allowWarnings"
+    ],
+    
+    "dflags-ldc": [
+        "--vgc",
+        "-defaultlib=",
+        "-debuglib="
+    ],
+    
+    "lflags-linux": ["-rpath=$$ORIGIN"]
+}
