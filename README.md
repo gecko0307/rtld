@@ -4,6 +4,7 @@ RTLD aims to be a minimal runtime library for D, alternative to Phobos/druntime.
 
 - Projects that need "Better BetterC". Raw BetterC mode is too restrictive. RTLD is fully `@nogc`, but supports classes, allowing to write at C++ level of abstraction
 - Performance-critical applications that need really fast runtime functionality
+- SDL-like functionality without SDL itself
 - Programming embedded devices, ARM boards and low-end computers
 - System development.
 
@@ -11,7 +12,7 @@ RTLD supports Windows and POSIX systems and currently compiles on x86_64 and AAr
 
 ## Features
 
-- `rtld.core` - cross-platform core API, including I/O, memory allocations, dynamic library loader, threads, etc.
+- `rtld.core` - cross-platform core API, including I/O, memory allocations, dynamic library loader, threads, window management, etc.
 - `rtld.gl`- OpenGL ES 2/3
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - basic math functions
