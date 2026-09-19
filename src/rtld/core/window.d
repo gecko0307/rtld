@@ -29,6 +29,7 @@ struct SystemWindowCreationSettings
     uint y;
     uint width;
     uint height;
+    bool center;
     const(wchar)* title;
 }
 
@@ -84,6 +85,9 @@ class SystemWindow
     uint height = 0;
     bool running = false;
     
+    uint displayWidth = 0;
+    uint displayHeight = 0;
+    
     double timer = 0.0;
     double timeStep = 1.0 / 60.0;
     
@@ -104,7 +108,6 @@ class SystemWindow
             info.wc.hInstance = GetModuleHandle(null);
             info.wc.hIcon = null;
             info.wc.hCursor = LoadCursor(null, IDC_ARROW);
-            //info.wc.hbrBackground = cast(HBRUSH)(COLOR_WINDOW + 1);
             info.wc.hbrBackground = cast(HBRUSH)GetStockObject(BLACK_BRUSH);
             info.wc.lpszMenuName = null;
             info.wc.lpszClassName = "RTLDWindow"w.ptr;
@@ -121,14 +124,26 @@ class SystemWindow
             AdjustWindowRectEx(&rect, style, FALSE, 0);
             int finalWidth = rect.right - rect.left;
             int finalHeight = rect.bottom - rect.top;
+            
+            this.width = cast(uint)finalWidth;
+            this.height = cast(uint)finalHeight;
+
+            displayWidth = GetSystemMetrics(SM_CXSCREEN);
+            displayHeight = GetSystemMetrics(SM_CYSCREEN);
+            
+            if (settings.center)
+            {
+                this.x = (displayWidth - this.width) / 2;
+                this.y = (displayHeight - this.height) / 2;
+            }
 
             info.hwnd = CreateWindowExW(
                 0,
                 info.wc.lpszClassName,
                 settings.title,
                 WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                settings.x, settings.y,
-                finalWidth, finalHeight,
+                this.x, this.y,
+                this.width, this.height,
                 null,
                 null,
                 info.wc.hInstance,
@@ -146,10 +161,20 @@ class SystemWindow
             info.screen = XDefaultScreenOfDisplay(info.display);
             info.root = XRootWindowOfScreen(info.screen);
             
+            int screenNumber = 0; 
+            displayWidth = XDisplayWidth(info.display, screenNumber);
+            displayHeight = XDisplayHeight(info.display, screenNumber);
+            
+            if (settings.center)
+            {
+                this.x = (displayWidth - this.width) / 2;
+                this.y = (displayHeight - this.height) / 2;
+            }
+            
             info.window = XCreateSimpleWindow(
                 info.display, info.root,
-                settings.x, settings.y,
-                settings.width, settings.height,
+                this.x, this.y,
+                this.width, this.height,
                 0, 0, 0);
             
             XSelectInput(info.display, info.window, StructureNotifyMask);

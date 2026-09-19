@@ -104,6 +104,8 @@ extern(C) nothrow @nogc
     alias f_XSetWMProtocols = int function(Display*, Window, ulong*, int);
     alias f_XClearWindow = int function(Display*, Window);
     alias f_XSetWindowBackground = int function(Display*, Window, ulong);
+    alias f_XDisplayWidth = int function(Display*, int);
+    alias f_XDisplayHeight = int function(Display*, int);
 }
 
 __gshared
@@ -123,6 +125,8 @@ __gshared
     f_XSetWMProtocols XSetWMProtocols;
     f_XClearWindow XClearWindow;
     f_XSetWindowBackground XSetWindowBackground;
+    f_XDisplayWidth XDisplayWidth;
+    f_XDisplayHeight XDisplayHeight;
 }
 
 void init() nothrow @nogc
@@ -143,4 +147,6 @@ void init() nothrow @nogc
     XSetWMProtocols = cast(f_XSetWMProtocols)getFunctionPointer(libX11, "XSetWMProtocols");
     XClearWindow = cast(f_XClearWindow)getFunctionPointer(libX11, "XClearWindow");
     XSetWindowBackground = cast(f_XSetWindowBackground)getFunctionPointer(libX11, "XSetWindowBackground");
+    XDisplayWidth = cast(f_XDisplayWidth)getFunctionPointer(libX11, "XDisplayWidth");
+    XDisplayHeight = cast(f_XDisplayHeight)getFunctionPointer(libX11, "XDisplayHeight");
 }

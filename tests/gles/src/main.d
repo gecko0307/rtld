@@ -80,10 +80,9 @@ class Application: SystemWindow
     this()
     {
         SystemWindowCreationSettings windowSettings = {
-            x: 100,
-            y: 100,
             width: 800,
             height: 600,
+            center: true,
             title: "RTLD"w.ptr
         };
         super(&windowSettings);

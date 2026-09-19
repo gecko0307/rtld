@@ -317,6 +317,9 @@ struct GLYPHMETRICSFLOAT
 
 alias LPGLYPHMETRICSFLOAT = GLYPHMETRICSFLOAT*;
 
+enum SM_CXSCREEN = 0;
+enum SM_CYSCREEN = 1;
+
 extern(Windows) nothrow @nogc
 {
     DWORD GetCurrentProcessId();
@@ -412,6 +415,8 @@ extern(Windows) nothrow @nogc
     uint GetStockObject(int fnObject);
     
     bool AdjustWindowRectEx(RECT* lpRect, uint dwStyle, bool bMenu, uint dwExStyle);
+    
+    int GetSystemMetrics(int nIndex);
 }
 
 alias LoadLibrary = LoadLibraryW;
