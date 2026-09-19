@@ -54,12 +54,31 @@ struct XClientMessageEvent
     long[5] data;
 }
 
+struct XConfigureEvent
+{
+    int type;
+    ulong serial;
+    bool send_event;
+    Display* display;
+    Window event;
+    Window window;
+    int x, y;
+    int width, height;
+    int border_width;
+    Window above;
+    bool override_redirect;
+}
+
 union XEvent
 {
     int type;
+    XConfigureEvent xconfigure;
     XClientMessageEvent xclient;
     long[24] pad;
 }
+
+enum StructureNotifyMask = 1 << 17;
+enum ConfigureNotify = 22;
 
 extern(C) nothrow @nogc
 {
@@ -116,6 +135,7 @@ void init() nothrow @nogc
     XDestroyWindow = cast(f_XDestroyWindow)getFunctionPointer(libX11, "XDestroyWindow");
     XPending = cast(f_XPending)getFunctionPointer(libX11, "XPending");
     XNextEvent = cast(f_XNextEvent)getFunctionPointer(libX11, "XNextEvent");
+    XSelectInput = cast(f_XSelectInput)getFunctionPointer(libX11, "XSelectInput");
     XDefaultScreenOfDisplay = cast(f_XDefaultScreenOfDisplay)getFunctionPointer(libX11, "XDefaultScreenOfDisplay");
     XRootWindowOfScreen = cast(f_XRootWindowOfScreen)getFunctionPointer(libX11, "XRootWindowOfScreen");
     XFlush = cast(f_XFlush)getFunctionPointer(libX11, "XFlush");

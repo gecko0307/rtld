@@ -39,7 +39,7 @@ else version(FreeStanding)
 }
 else
 {
-    T create(T, Args...)(Args args) @nogc nothrow 
+    T create(T, Args...)(Args args)
         if (isClass!T)
     {
         enum size = __traits(classInstanceSize, T);
@@ -73,7 +73,7 @@ else
         return arr;
     }
 
-    void destroy(T)(ref T instance) @nogc nothrow 
+    void destroy(T)(ref T instance)
         if (is(T == class)) 
     {
         if (instance is null) return;

@@ -75,6 +75,8 @@ alias COLORREF = uint;
 enum TRUE = 1;
 enum FALSE = 0;
 
+enum BLACK_BRUSH = 4;
+
 enum STD_OUTPUT_HANDLE = cast(DWORD)-11;
 enum HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1;
 
@@ -153,6 +155,14 @@ struct POINTFLOAT
 {
     FLOAT x;
     FLOAT y;
+}
+
+struct RECT
+{
+    int left;
+    int top;
+    int right;
+    int bottom;
 }
 
 enum WM_QUIT     = 0x0012;
@@ -398,6 +408,10 @@ extern(Windows) nothrow @nogc
     
     HDC GetDC(HWND hWnd);
     BOOL SwapBuffers(HDC unnamedParam1);
+    
+    uint GetStockObject(int fnObject);
+    
+    bool AdjustWindowRectEx(RECT* lpRect, uint dwStyle, bool bMenu, uint dwExStyle);
 }
 
 alias LoadLibrary = LoadLibraryW;
