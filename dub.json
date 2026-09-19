@@ -1,0 +1,40 @@
+{
+    "name": "rtld",
+    "description": "Real-Time Library for D",
+    "homepage": "",
+    "license": "BSL-1.0",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "copyright": "Copyright © 2026, Timur Gafarov",
+    
+    "importPaths": [
+        "src"
+    ],
+    
+    "sourcePaths": [
+        "src"
+    ],
+    
+    "buildRequirements":[
+        "allowWarnings"
+    ],
+    
+    "configurations": [
+        {
+            "name": "default",
+            "targetType": "sourceLibrary",
+            "versions": ["Phobos"]
+        },
+        {
+            "name": "no-druntime",
+            "targetType": "sourceLibrary"
+        },
+    ],
+    
+    "subPackages": [
+        "runtime"
+    ],
+    
+    "-ddoxTool": "scod"
+}
