@@ -8,7 +8,7 @@ RTLD aims to be a minimal runtime library for D, alternative to Phobos/druntime.
 - Programming embedded devices, ARM boards and low-end computers
 - System development.
 
-RTLD supports Windows and POSIX systems and currently compiles on x86_64 and AArch64. Some parts of it are also platform-agnostic and can be used on bare metal.
+RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64. Some parts of it are also platform-agnostic and can be used on bare metal.
 
 ## Features
 
