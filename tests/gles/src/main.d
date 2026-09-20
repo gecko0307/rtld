@@ -91,8 +91,12 @@ class Application: SystemWindow
         {
             printf("Failed to create OpenGL ES 3.0 context!\n");
             running = false;
-            return;
+            exit(1);
         }
+        
+        printf("GL_VENDOR: %s\n", glGetString(GL_VENDOR));
+        printf("GL_RENDERER: %s\n", glGetString(GL_RENDERER));
+        printf("GL_VERSION: %s\n", glGetString(GL_VERSION));
         
         initGL();
     }
@@ -216,6 +220,15 @@ class Application: SystemWindow
 
 void main()
 {
+    version(linux)
+    {
+        setenv("LIBGL_DRI3_ENABLE", "1", 1);
+        //setenv("LIBGL_ALWAYS_SOFTWARE", "0", 1);
+        //setenv("GALLIUM_DRIVER", "", 1); 
+        setenv("EGL_LOG_LEVEL", "debug", 1);
+        setenv("LIBGL_DEBUG", "verbose", 1);
+    }
+    
     Application app = create!Application();
     app.run();
     destroy(app);

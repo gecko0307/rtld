@@ -97,5 +97,14 @@ else
         int system(char* s);
         int _system_r(void* reent, char* s);
         int wctomb(char* s, wchar wc);
+        
+        /// Sets or changes an environment variable.
+        int setenv(const(char)* name, const(char)* value, int overwrite);
+
+        /// Deletes an environment variable.
+        int unsetenv(const(char)* name);
+
+        /// Low-level function to add or change environment string (format "NAME=VALUE").
+        int putenv(char* string);
     }
 }
