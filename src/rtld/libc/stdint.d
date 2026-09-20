@@ -81,7 +81,6 @@ else version(Posix)
 }
 else
 {
-    // ?
     alias c_long = long;
     alias c_ulong = ulong;
 }

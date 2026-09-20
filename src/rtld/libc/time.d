@@ -63,40 +63,6 @@ version(WebAssembly)
 }
 else version(FreeStanding)
 {
-    extern(C) nothrow @nogc
-    {
-        time_t time(time_t* arg)
-        {
-            if (arg !is null)
-                *arg = 0;
-            return 0;
-        }
-
-        clock_t clock()
-        {
-            return 0;
-        }
-
-        tm* gmtime(const(time_t)* t)
-        {
-            return null;
-        }
-
-        tm* localtime(const(time_t)* t)
-        {
-            return null;
-        }
-
-        tm* gmtime_r(const(time_t)* t, tm* buf)
-        {
-            return null;
-        }
-
-        tm* localtime_r(const(time_t)* t, tm* buf)
-        {
-            return null;
-        }
-    }
 }
 else
 {

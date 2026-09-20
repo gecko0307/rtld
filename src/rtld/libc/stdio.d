@@ -29,7 +29,17 @@ module rtld.libc.stdio;
 
 import rtld.libc.stdint;
 
-// TODO: constants
+enum int EOF = -1;
+
+enum int SEEK_SET = 0;
+enum int SEEK_CUR = 1;
+enum int SEEK_END = 2;
+
+enum int _IOFBF = 0;
+enum int _IOLBF = 1;
+enum int _IONBF = 2;
+
+enum size_t BUFSIZ = 8192;
 
 struct FILE;
 struct fpos_t;
@@ -42,6 +52,31 @@ else version(FreeStanding)
 }
 else
 {
+    version(Linux)
+    {
+        extern(C) __gshared FILE* stdin;
+        extern(C) __gshared FILE* stdout;
+        extern(C) __gshared FILE* stderr;
+    }
+    else version(OSX)
+    {
+        private extern(C) __gshared FILE* __stdinp;
+        private extern(C) __gshared FILE* __stdoutp;
+        private extern(C) __gshared FILE* __stderrp;
+
+        @property FILE* stdin()  nothrow @nogc { return __stdinp; }
+        @property FILE* stdout() nothrow @nogc { return __stdoutp; }
+        @property FILE* stderr() nothrow @nogc { return __stderrp; }
+    }
+    else version(Windows)
+    {
+        private extern(C) FILE** __acrt_iob_func(uint index) nothrow @nogc;
+
+        @property FILE* stdin()  nothrow @nogc { return *__acrt_iob_func(0); }
+        @property FILE* stdout() nothrow @nogc { return *__acrt_iob_func(1); }
+        @property FILE* stderr() nothrow @nogc { return *__acrt_iob_func(2); }
+    }
+    
     extern(C) nothrow @nogc
     {
         /// Closes a file.
@@ -60,7 +95,7 @@ else
         char* fgets(char* str, int num, FILE* stream);
         
         /// Opens a file and returns a file pointer for use in file handling functions.
-        int fopen(const(char)* fname, const(char)* mode);
+        FILE* fopen(const(char)* fname, const(char)* mode);
         
         /// Writes a formatted string into a file.
         int fprintf(FILE* stream, const(char)* format, ...);

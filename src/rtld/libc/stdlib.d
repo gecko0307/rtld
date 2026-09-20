@@ -27,117 +27,75 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.libc.stdlib;
 
+enum NULL = null;
+enum EXIT_SUCCESS = 0;
+enum EXIT_FAILURE = 1;
+
+struct div_t
+{
+    int quot;
+    int rem;
+}
+
+struct ldiv_t
+{
+    long quot;
+    long rem;
+}
+
 version(WebAssembly)
 {
-    extern(C) nothrow @nogc
-    {
-        uint jsMalloc(uint) nothrow @nogc;
-        void jsFree(uint) nothrow @nogc;
-        
-        pragma(inline, true)
-        void* malloc(size_t size)
-        {
-            return cast(void*)jsMalloc(size);
-        }
-        
-        pragma(inline, true)
-        void free(void* mem)
-        {
-            jsFree(cast(uint)mem);
-        }
-        
-        // Fallback
-        pragma(inline, true)
-        void srand(uint seed)
-        {
-            // TODO
-        }
-        
-        // Fallback
-        pragma(inline, true)
-        int rand()
-        {
-            // TODO
-            return 0;
-        }
-        
-        pragma(inline, true)
-        void exit(int status)
-        {
-            //
-        }
-        
-        pragma(inline, true)
-        void _Exit(int status)
-        {
-            //
-        }
-    }
 }
 else version(FreeStanding)
 {
-    extern(C) nothrow @nogc
-    {
-        // For user-side implementation:
-        __gshared void* function(size_t) custom_malloc;
-        __gshared void function(void* mem) custom_free;
-        __gshared void function(uint seed) custom_srand;
-        __gshared int function() custom_rand;
-        
-        pragma(inline, true)
-        void* malloc(size_t size)
-        {
-            if (custom_malloc)
-                return custom_malloc(size);
-            else
-                return null;
-        }
-        
-        pragma(inline, true)
-        void free(void* mem)
-        {
-            if (custom_free)
-                custom_free(mem);
-        }
-        
-        pragma(inline, true)
-        void srand(uint seed)
-        {
-            if (custom_srand)
-                custom_srand(seed);
-        }
-        
-        pragma(inline, true)
-        int rand()
-        {
-            if (custom_rand)
-                return custom_rand();
-            else
-                return 0;
-        }
-        
-        pragma(inline, true)
-        void exit(int status)
-        {
-            //
-        }
-        
-        pragma(inline, true)
-        void _Exit(int status)
-        {
-            //
-        }
-    }
 }
 else
 {
     extern(C) nothrow @nogc
     {
-        void* malloc(size_t size);
-        void free(void* mem);
-        void srand(uint seed);
-        int rand();
+        int abs(int i);
+        int atexit(void function());
+        double atof(const(char)* s);
+        float atoff(const(char)* s);
+        int atoi(const(char)* s);
+        long atol(const(char)* s);
+        void* bsearch(const(void)* key, const(void)* base, size_t nmemb, size_t size, int function(const(void)*, const(void)*) compar);
+        void* calloc(size_t n, size_t s);
+        void* calloc_r(void* reent, size_t n, size_t s);
+        div_t div(int n, int d);
+        char* ecvt(double val, int chars, int* decpt, int* sgn);
+        char* ecvtf(float val, int chars, int* decpt, int* sgn);
+        char* fcvt(double val, int decimals, int* decpt, int* sgn);
+        char* fcvtf(float val, int decimals, int* decpt, int* sgn);
+        char* gcvt(double val, int precision, char* buf);
+        char* gcvtf(float val, int precision, char* buf);
+        char* ecvtbuf(double val, int chars, int* decpt, int* sgn, char* buf);
+        char* fcvtbuf(double val, int decimals, int* decpt, int* sgn, char* buf);
         void exit(int status);
-        void _Exit(int status);
+        char* getenv(const(char)* name);
+        long labs(long i);
+        ldiv_t ldiv(long n, long d);
+        void* malloc(size_t size);
+        void* realloc(void* aptr, size_t nbytes);
+        void free(void* mem);
+        void* _malloc_r(void* reent, size_t nbytes);
+        void* _realloc_r(void* reent, void* aptr, size_t nbytes);
+        void _free_r(void* reent, void* aptr);
+        int mbtowc(wchar* pwc, const(char)* s, size_t n);
+        void qsort(void* base, size_t nmemb, size_t size, int function(const(void)*, const(void)*) compar);
+        int rand();
+        void srand(uint seed);
+        int _rand_r(void* reent);
+        void _srand_r(void* reent, uint seed);
+        double strtod(const(char)* str, char** tail);
+        float strtodf(const(char)* str, char** tail);
+        double _strtod_r(void* reent, const(char)* str, char** tail);
+        long strtol(const(char)* s, char** ptr, int base);
+        long _strtol_r(void* reent, const(char)* s, char** ptr, int base);
+        ulong strtoul(const(char)* s, char** ptr, int base);
+        ulong _strtoul_r(void* reent, const(char)* s, char** ptr, int base);
+        int system(char* s);
+        int _system_r(void* reent, char* s);
+        int wctomb(char* s, wchar wc);
     }
 }

@@ -27,6 +27,193 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.libc.string;
 
+version(linux)
+{
+    enum: int
+    {
+        EPERM           = 1,   /// Operation not permitted
+        ENOENT          = 2,   /// No such file or directory
+        ESRCH           = 3,   /// No such process
+        EINTR           = 4,   /// Interrupted system call
+        EIO             = 5,   /// I/O error
+        ENXIO           = 6,   /// No such device or address
+        E2BIG           = 7,   /// Argument list too long
+        ENOEXEC         = 8,   /// Exec format error
+        EBADF           = 9,   /// Bad file number
+        ECHILD          = 10,  /// No child processes
+        EAGAIN          = 11,  /// Try again / Resource temporarily unavailable
+        ENOMEM          = 12,  /// Out of memory
+        EACCES          = 13,  /// Permission denied
+        EFAULT          = 14,  /// Bad address
+        ENOTBLK         = 15,  /// Block device required
+        EBUSY           = 16,  /// Device or resource busy
+        EEXIST          = 17,  /// File exists
+        EXDEV           = 18,  /// Cross-device link
+        ENODEV          = 19,  /// No such device
+        ENOTDIR         = 20,  /// Not a directory
+        EISDIR          = 21,  /// Is a directory
+        EINVAL          = 22,  /// Invalid argument
+        ENFILE          = 23,  /// File table overflow
+        EMFILE          = 24,  /// Too many open files
+        ENOTTY          = 25,  /// Not a typewriter
+        ETXTBSY         = 26,  /// Text file busy
+        EFBIG           = 27,  /// File too large
+        ENOSPC          = 28,  /// No space left on device
+        ESPIPE          = 29,  /// Illegal seek
+        EROFS           = 30,  /// Read-only file system
+        EMLINK          = 31,  /// Too many links
+        EPIPE           = 32,  /// Broken pipe
+        EDOM            = 33,  /// Math argument out of domain of func
+        ERANGE          = 34,  /// Math result not representable
+        EDEADLK         = 35,  /// Resource deadlock would occur
+        ENAMETOOLONG    = 36,  /// File name too long
+        ENOLCK          = 37,  /// No record locks available
+        ENOSYS          = 38,  /// Invalid system call number
+        ENOTEMPTY       = 39,  /// Directory not empty
+        ELOOP           = 40,  /// Too many symbolic links encountered
+        EWOULDBLOCK     = EAGAIN,
+        
+        // Network errors
+        ENOTSOCK        = 88,  /// Socket operation on non-socket
+        EDESTADDRREQ    = 89,  /// Destination address required
+        EMSGSIZE        = 90,  /// Message too long
+        EPROTOTYPE      = 91,  /// Protocol wrong type for socket
+        ENOPROTOOPT     = 92,  /// Protocol not available
+        EPROTONOSUPPORT = 93,  /// Protocol not supported
+        EOPNOTSUPP      = 95,  /// Operation not supported on transport endpoint
+        EAFNOSUPPORT    = 97,  /// Address family not supported by protocol
+        EADDRINUSE      = 98,  /// Address already in use
+        EADDRNOTAVAIL   = 99,  /// Cannot assign requested address
+        ENETDOWN        = 100, /// Network is down
+        ENETUNREACH     = 101, /// Network is unreachable
+        ENETRESET       = 102, /// Network dropped connection because of reset
+        ECONNABORTED    = 103, /// Software caused connection abort
+        ECONNRESET      = 104, /// Connection reset by peer
+        ENOBUFS         = 105, /// No buffer space available
+        EISCONN         = 106, /// Transport endpoint is already connected
+        ENOTCONN        = 107, /// Transport endpoint is not connected
+        ETIMEDOUT       = 110, /// Connection timed out
+        ECONNREFUSED    = 111, /// Connection refused
+        EHOSTUNREACH    = 113, /// No route to host
+        EALREADY        = 114, /// Operation already in progress
+        EINPROGRESS     = 115, /// Operation now in progress
+    }
+}
+else version(OSX)
+{
+    enum: int
+    {
+        EPERM           = 1,
+        ENOENT          = 2,
+        ESRCH           = 3,
+        EINTR           = 4,
+        EIO             = 5,
+        ENXIO           = 6,
+        E2BIG           = 7,
+        ENOEXEC         = 8,
+        EBADF           = 9,
+        ECHILD          = 10,
+        EDEADLK         = 11,
+        ENOMEM          = 12,
+        EACCES          = 13,
+        EFAULT          = 14,
+        EBUSY           = 16,
+        EEXIST          = 17,
+        EXDEV           = 18,
+        ENODEV          = 19,
+        ENOTDIR         = 20,
+        EISDIR          = 21,
+        EINVAL          = 22,
+        ENFILE          = 23,
+        EMFILE          = 24,
+        ENOTTY          = 25,
+        ETXTBSY         = 26,
+        EFBIG           = 27,
+        ENOSPC          = 28,
+        ESPIPE          = 29,
+        EROFS           = 30,
+        EMLINK          = 31,
+        EPIPE           = 32,
+        EDOM            = 33,
+        ERANGE          = 34,
+        EAGAIN          = 35,
+        EWOULDBLOCK     = EAGAIN,
+        EINPROGRESS     = 36,
+        EALREADY        = 37,
+        
+        // Network errors
+        ENOTSOCK        = 38,
+        EDESTADDRREQ    = 39,
+        EMSGSIZE        = 40,
+        EPROTOTYPE      = 41,
+        ENOPROTOOPT     = 42,
+        EPROTONOSUPPORT = 43,
+        EOPNOTSUPP      = 45,
+        EAFNOSUPPORT    = 47,
+        EADDRINUSE      = 48,
+        EADDRNOTAVAIL   = 49,
+        ENETDOWN        = 50,
+        ENETUNREACH     = 51,
+        ENETRESET       = 52,
+        ECONNABORTED    = 53,
+        ECONNRESET      = 54,
+        ENOBUFS         = 55,
+        EISCONN         = 56,
+        ENOTCONN        = 57,
+        ETIMEDOUT       = 60,
+        ECONNREFUSED    = 61,
+        ELOOP           = 62,
+        ENAMETOOLONG    = 63,
+        EHOSTUNREACH    = 65,
+        ENOTEMPTY       = 66,
+    }
+}
+else version(Windows)
+{
+    enum: int
+    {
+        EPERM           = 1,
+        ENOENT          = 2,
+        ESRCH           = 3,
+        EINTR           = 4,
+        EIO             = 5,
+        ENXIO           = 6,
+        E2BIG           = 7,
+        ENOEXEC         = 8,
+        EBADF           = 9,
+        ECHILD          = 10,
+        EAGAIN          = 11,
+        ENOMEM          = 12,
+        EACCES          = 13,
+        EFAULT          = 14,
+        EBUSY           = 16,
+        EEXIST          = 17,
+        EXDEV           = 18,
+        ENODEV          = 19,
+        ENOTDIR         = 20,
+        EISDIR          = 21,
+        EINVAL          = 22,
+        ENFILE          = 23,
+        EMFILE          = 24,
+        ENOTTY          = 25,
+        EFBIG           = 27,
+        ENOSPC          = 28,
+        ESPIPE          = 29,
+        EROFS           = 30,
+        EMLINK          = 31,
+        EPIPE           = 32,
+        EDOM            = 33,
+        ERANGE          = 34,
+        EDEADLK         = 36,
+        EDEADLOCK       = EDEADLK,
+        ENAMETOOLONG    = 38,
+        ENOLCK          = 39,
+        ENOSYS          = 40,
+        ENOTEMPTY       = 41,
+        EILSEQ          = 42,
+    }
+}
+
 version(WebAssembly)
 {
     // TODO
@@ -66,8 +253,33 @@ else
 {
     extern(C) nothrow @nogc
     {
-        void* memset(void* dst, int c, size_t size);
-        void* memcpy(void* dest, const(void)* src, size_t n);
+        int bcmp(const(char)* s1, const(char)* s2, size_t n);
+        void bcopy(const(char)* _in, char* _out, size_t n);
+        void bzero(char* b, size_t length);
+        char* index(const(char)* str, int c);
+        void* memchr(const(void)* src, int c, size_t length);
+        int memcmp(const(char)* s1, const(char)* s2, size_t n);
+        void* memcpy(void* _out, const(void)* _in, size_t n);
+        void* memmove(void* dst, const(void)* src, size_t length);
+        void* memset(void* dst, int c, size_t length);
+        char* rindex(const(char)* str, int c);
+        char* strcat(char* dst, const(char)* src);
+        char* strchr(const(char)* str, int c);
+        int strcmp(const(char)* a, const(char)* b);
+        int strcoll(const(char)* stra, const(char)* strb);
+        char* strcpy(char* dst, const(char)* src);
+        size_t strcspn(const(char)* s1, const(char)* s2);
+        char* strerror(int errnum);
         size_t strlen(const(char)* s);
+        char* strncat(char* dst, const(char)* src, size_t length);
+        int strncmp(const(char)* a, const(char)* b, size_t length);
+        char* strncpy(char* dst, const(char)* src, size_t length);
+        char* strpbrk(const(char)* s1, const(char)* s2);
+        char* strrchr(const(char)* str, int c);
+        size_t strspn(const(char)* s1, const(char)* s2);
+        char* strstr(const(char)* s1, const(char)* s2);
+        char* strtok(char* source, const(char)* delimiters);
+        char* strtok_r(char* source, const(char)* delimiters, char** saveptr);
+        size_t strxfrm(char* s1, const(char)* s2, size_t n);
     }
 }
