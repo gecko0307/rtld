@@ -27,36 +27,32 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.process;
 
+import rtld.libc.stdlib;
+
 version(Windows)
 {
     import rtld.sys.windows.windows;
     
     alias processId = GetCurrentProcessId;
-    alias exit = ExitProcess;
 }
 else version(Posix)
 {
     import rtld.sys.posix.unistd;
-    import rtld.libc.stdlib;
     
     pragma(inline, true)
     uint processId() nothrow @nogc
     {
         return cast(uint)getpid();
     }
-    
-    alias exit = rtld.libc.stdlib.exit;
 }
 else
 {
-    import rtld.libc.stdlib;
-    
     // Fallback
     pragma(inline, true)
     uint processId() nothrow @nogc
     {
         return 0;
     }
-    
-    alias exit = rtld.libc.stdlib.exit;
 }
+
+alias exit = rtld.libc.stdlib.exit;
