@@ -27,6 +27,9 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.io;
 
+import rtld.libc.stdio;
+import rtld.text.encodings: toUTF8z;
+
 version(Windows)
 {
     import rtld.sys.windows;
@@ -43,7 +46,7 @@ else version(Posix)
     private enum STDOUT_FILENO = 1;
 }
 
-void printStr(string msg) @nogc nothrow
+void printStr(const(char)[] msg) @nogc nothrow
 {
     if (msg.length == 0)
         return;
@@ -62,4 +65,155 @@ void printStr(string msg) @nogc nothrow
     {
         write(STDOUT_FILENO, msg.ptr, cast(c_long)msg.length);
     }
+}
+
+void printStrLn(const(char)[] msg) @nogc nothrow
+{
+    printStr(msg);
+    printStr("\n");
+}
+
+private void writeArg(T)(T arg)
+{
+    static if (is(T == const(char)[]) || is(T == string) || is(T == char[]))
+    {
+        printStr(arg);
+    }
+    else static if (is(T == const(wchar)[]) || is(T == wstring) || is(T == wchar[]))
+    {
+        ubyte[1024] stackBuffer = void;
+        const(char)* utf8Resultz = toUTF8z(arg, stackBuffer[]);
+        if (utf8Resultz !is null)
+        {
+            size_t len = 0;
+            while (utf8Resultz[len] != '\0')
+                len++;
+            printStr(utf8Resultz[0..len]);
+        }
+        else
+            printStr("{ERROR}");
+    }
+    else static if (is(T: long))
+    {
+        char[32] tmpBuf = void;
+        int len;
+        static if (is(T == ulong) || is(T == uint) || is(T == ushort) || is(T == ubyte))
+            len = snprintf(tmpBuf.ptr, tmpBuf.length, "%llu".ptr, cast(ulong)arg);
+        else
+            len = snprintf(tmpBuf.ptr, tmpBuf.length, "%lld".ptr, cast(long)arg);
+        if (len > 0 && len < tmpBuf.length)
+            printStr(tmpBuf[0..len]);
+        else
+            printStr("{INT_ERR}");
+    }
+    else static if (is(T: double) || is(T: float))
+    {
+        char[32] tmpBuf = void;
+        int len = snprintf(tmpBuf.ptr, tmpBuf.length, "%g".ptr, cast(T)arg);
+        if (len > 0 && len < tmpBuf.length)
+            printStr(tmpBuf[0..len]);
+        else
+            printStr("{ERROR}");
+    }
+    else static if (is(T == bool))
+    {
+        printStr(arg ? "true" : "false");
+    }
+    else static if (__traits(hasMember, T, "toString") && 
+                    is(typeof(arg.toString()) : const(char)[]))
+    {
+        static if (is(T == class) || is(T == interface))
+        {
+            if (arg is null)
+            {
+                printStr("null");
+                return;
+            }
+        }
+        printStr(arg.toString());
+    }
+    /*
+    else static if (__traits(hasMember, T, "toString") && 
+                    is(typeof(arg.toString((const(char)[] s) => printStr(s)))))
+    {
+        void delegate(const(char)[]) @nogc nothrow sink;
+        sink.ptr = null;
+        sink.funcptr = &printStr;
+        arg.toString(sink);
+    }
+    */
+    else static if (is(T == struct))
+    {
+        printStr(__traits(identifier, T));
+        printStr("(");
+        static foreach (i; 0..arg.tupleof.length)
+        {
+            static if (i > 0)
+                printStr(", ");
+            writeArg(arg.tupleof[i]);
+        }
+        printStr(")");
+    }
+    else
+    {
+        printStr("{?}");
+    }
+}
+
+void printFmt(Args...)(const(char)[] fmt, Args args)
+{
+    size_t lastIdx = 0;
+
+    for (size_t i = 0; i < fmt.length; i++) 
+    {
+        if (fmt[i] == '{') 
+        {
+            size_t j = i + 1;
+            int argIdx = 0;
+            bool hasIndex = false;
+
+            while (j < fmt.length && fmt[j] >= '0' && fmt[j] <= '9') 
+            {
+                argIdx = (argIdx * 10) + (fmt[j] - '0');
+                hasIndex = true;
+                j++;
+            }
+
+            if (j < fmt.length && fmt[j] == '}' && hasIndex) 
+            {
+                if (i > lastIdx) {
+                    printStr(fmt[lastIdx .. i]);
+                }
+
+                bool found = false;
+
+                static foreach (idx, Arg; Args) 
+                {
+                    if (!found && argIdx == idx) 
+                    {
+                        writeArg(args[idx]);
+                        found = true;
+                    }
+                }
+
+                if (!found) 
+                {
+                    printStr("{!INDEX_OUT_OF_BOUNDS}");
+                }
+                
+                i = j; 
+                lastIdx = i + 1;
+            }
+        }
+    }
+    
+    if (lastIdx < fmt.length) {
+        printStr(fmt[lastIdx..$]);
+    }
+}
+
+void printFmtLn(Args...)(const(char)[] fmt, Args args)
+{
+    printFmt(fmt, args);
+    printStr("\n");
 }

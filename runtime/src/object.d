@@ -32,6 +32,7 @@ import rtld.core.process;
 alias size_t = typeof(int.init.sizeof);
 alias ptrdiff_t = typeof(cast(void*)0 - cast(void*)0);
 alias string = immutable(char)[];
+alias wstring = immutable(wchar)[];
 alias noreturn = typeof(*null);
 
 class Object
