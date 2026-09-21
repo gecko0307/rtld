@@ -43,16 +43,21 @@ enum ushort UTF16_LO_SURROGATE = 0xDC00;
 enum ushort UTF16_BOM_LE = 0xfeff;
 enum ushort UTF16_BOM_BE = 0xfffe;
 
+/// Constant to return from the decoder on the end of string.
+enum UTF16_END = DECODE_END;
+
+/// Constant to return from the decoder when error occurs.
+enum UTF16_ERROR = DECODE_ERROR;
+
 /**
  * UTF-16 LE decoder to use with dlib.text.encodings.transcode
  */
 struct UTF16LEDecoder
 {
-    // TODO: byte order
     public:
 
     /// Input string. Set it before decoding
-    string input;
+    const(wchar)[] input;
 
     /// Current index in an input string
     size_t index = 0;
@@ -64,20 +69,38 @@ struct UTF16LEDecoder
      * Decode next character.
      * Returns: decoded code point, or UTF8_ERROR if error occured, or UTF8_END if input has no more characters.
      */
-    int decodeNext()
+    int decodeNext() @nogc nothrow
     {
         if (index >= input.length)
-            return index == input.length ? DECODE_END : DECODE_ERROR;
+            return index == input.length ? UTF16_END : UTF16_ERROR;
+
         character++;
-        wchar c = *cast(wchar*)(&input[index]);
-        index += 2;
-        return c;
+
+        uint codePoint = input[index++];
+
+        if (codePoint >= 0xD800 && codePoint <= 0xDBFF)
+        {
+            if (index >= input.length)
+                return UTF16_ERROR;
+
+            uint lowSurrogate = input[index++];
+            
+            if (lowSurrogate < 0xDC00 || lowSurrogate > 0xDFFF)
+                return UTF16_ERROR;
+
+            return ((codePoint - 0xD800) << 10) + (lowSurrogate - 0xDC00) + 0x10000;
+        }
+        
+        if (codePoint >= 0xDC00 && codePoint <= 0xDFFF)
+            return UTF16_ERROR;
+
+        return cast(int)codePoint;
     }
 
     /**
      * Check if decoder is in the end of input.
      */
-    bool eos()
+    bool eos() @nogc nothrow
     {
         return (index >= input.length);
     }
@@ -85,7 +108,7 @@ struct UTF16LEDecoder
     /**
      * Range interface.
      */
-    auto decode(string s)
+    auto decode(const(wchar)[] s) @nogc nothrow
     {
         input = s;
 
@@ -96,28 +119,28 @@ struct UTF16LEDecoder
             dchar _lastRead;
 
             public:
-            this(UTF16LEDecoder decoder)
+            this(UTF16LEDecoder decoder) @nogc nothrow
             {
                 _decoder = decoder;
                 _lastRead = cast(dchar)_decoder.decodeNext();
             }
 
-            bool empty()
+            bool empty() @nogc nothrow
             {
-                return _lastRead == DECODE_END || _lastRead == DECODE_ERROR;
+                return _lastRead == UTF16_END || _lastRead == UTF16_ERROR;
             }
 
-            dchar front()
+            dchar front() @nogc nothrow
             {
                 return _lastRead;
             }
 
-            void popFront()
+            void popFront() @nogc nothrow
             {
                 _lastRead = cast(dchar)_decoder.decodeNext();
             }
 
-            auto save()
+            auto save() @nogc nothrow
             {
                 return this;
             }
@@ -127,7 +150,7 @@ struct UTF16LEDecoder
     }
 
     /// ditto
-    auto decode()
+    auto decode() @nogc nothrow
     {
         return decode(input);
     }
@@ -198,108 +221,3 @@ unittest
     assert(numBytes == 2);
     assert(cast(wchar[])(buffer[0..numBytes]) == [0x0416]);
 }
-
-/**
- * Converts UTF-8 to UTF-16
- * Will be deprecated soon, use transcode!(UTF8Decoder, UTF16LEEncoder) instead
- */
-/*
-wchar[] convertUTF8toUTF16(string s, bool nullTerm = false)
-{
-    Array!wchar array;
-    wchar[] output;
-
-    UTF8Decoder dec = UTF8Decoder(s);
-
-    while (!dec.eos)
-    {
-        int code = dec.decodeNext();
-
-        if (code == UTF8_ERROR)
-        {
-            array.free();
-            return output;
-        }
-
-        dchar ch = cast(dchar)code;
-
-        if (ch > 0xFFFF)
-        {
-            // Split ch up into a surrogate pair as it is over 16 bits long.
-            wchar x = cast(wchar)ch;
-            auto vh = UTF16_HI_SURROGATE | ((((ch >> 16) & ((1 << 5) - 1)) - 1) << 6) | (x >> 10);
-            auto vl = UTF16_LO_SURROGATE | (x & ((1 << 10) - 1));
-            array.append(cast(wchar)vh);
-            array.append(cast(wchar)vl);
-        }
-        else
-        {
-            array.append(cast(wchar)ch);
-        }
-    }
-
-    if (nullTerm)
-    {
-        array.append(0);
-    }
-
-    output = copy(array.data);
-    array.free();
-    return output;
-}
-*/
-
-/**
- * Converts UTF-16 zero-terminated string to UTF-8
- */
-/*
-char[] convertUTF16ztoUTF8(wchar* s, bool nullTerm = false)
-{
-    Array!char array;
-    char[] output;
-    wchar* utf16 = s;
-
-    wchar utf16char;
-    do
-    {
-        utf16char = *utf16;
-        utf16++;
-
-        if (utf16char)
-        {
-            if (utf16char < 0x80)
-            {
-                array.append((utf16char >> 0 & 0x7F) | 0x00);
-            }
-            else if (utf16char < 0x0800)
-            {
-                array.append((utf16char >> 6 & 0x1F) | 0xC0);
-                array.append((utf16char >> 0 & 0x3F) | 0x80);
-            }
-            else if (utf16char < 0x010000)
-            {
-                array.append((utf16char >> 12 & 0x0F) | 0xE0);
-                array.append((utf16char >> 6 & 0x3F) | 0x80);
-                array.append((utf16char >> 0 & 0x3F) | 0x80);
-            }
-            else if (utf16char < 0x110000)
-            {
-                array.append((utf16char >> 18 & 0x07) | 0xF0);
-                array.append((utf16char >> 12 & 0x3F) | 0x80);
-                array.append((utf16char >> 6 & 0x3F) | 0x80);
-                array.append((utf16char >> 0 & 0x3F) | 0x80);
-            }
-        }
-    }
-    while (utf16char);
-
-    if (nullTerm)
-    {
-        array.append(0);
-    }
-
-    output = copy(array.data);
-    array.free();
-    return output;
-}
-*/

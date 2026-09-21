@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2025 Timur Gafarov
+Copyright (c) 2018-2026 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -25,7 +25,6 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-
 module rtld.text.encodings;
 
 public
@@ -77,4 +76,48 @@ const(wchar)* toUTF16z(string input, ubyte[] destBuffer) @nogc nothrow
     destBuffer[writeIdx + 1] = 0;
 
     return cast(const(wchar)*)destBuffer.ptr;
+}
+
+/**
+* Transcodes a UTF-16 slice into a null-terminated UTF-8 string within a byte buffer.
+*/
+const(char)* toUTF8z(const(wchar)[] input, ubyte[] destBuffer) @nogc nothrow
+{
+    if (destBuffer.length < 4)
+        return null;
+
+    UTF16LEDecoder decoder;
+    decoder.input = input;
+    decoder.index = 0;
+
+    UTF8Encoder encoder;
+
+    size_t writeIdx = 0;
+    size_t maxWriteLen = destBuffer.length - 1; 
+
+    while (!decoder.eos())
+    {
+        int codePoint = decoder.decodeNext();
+
+        if (codePoint == UTF16_END) break;
+        if (codePoint == UTF16_ERROR) return null;
+
+        if (writeIdx + 4 > maxWriteLen)
+        {
+            ubyte[4] tempBuf;
+            size_t projected = encoder.encode(cast(uint)codePoint, tempBuf);
+            if (projected == 0 || writeIdx + projected > maxWriteLen)
+                return null;
+        }
+
+        size_t bytesWritten = encoder.encode(cast(uint)codePoint, destBuffer[writeIdx..$]);
+        if (bytesWritten == 0)
+            return null;
+
+        writeIdx += bytesWritten;
+    }
+
+    destBuffer[writeIdx] = 0;
+
+    return cast(const(char)*)destBuffer.ptr;
 }

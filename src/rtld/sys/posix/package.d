@@ -25,7 +25,6 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-
 module rtld.sys.posix;
 
 version(Posix):
@@ -33,6 +32,7 @@ version(Posix):
 public
 {
     import rtld.sys.posix.sys.types;
+    import rtld.sys.posix.sys.stat;
     import rtld.sys.posix.dlfcn;
     import rtld.sys.posix.fnctl;
     import rtld.sys.posix.pthread;

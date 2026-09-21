@@ -46,6 +46,7 @@ int main()
         if (bytesRead > 0)
         {
             const(char)[] str = cast(char[])buffer[0..bytesRead];
+            printf("File content:\n");
             printf("%.*s\n", bytesRead, str.ptr);
         }
     }

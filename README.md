@@ -12,7 +12,7 @@ RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64
 
 ## Features
 
-- `rtld.core` - cross-platform core API, including I/O, memory allocations, dynamic library loader, threads, window management, etc.
+- `rtld.core` - cross-platform core API, including file I/O, memory allocator, dynamic library loader, threads, window management, etc.
 - `rtld.gl`- OpenGL ES 2/3
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - basic math functions
