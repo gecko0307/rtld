@@ -34,10 +34,10 @@ int main()
     }
     if (size > 0)
     {
-        ubyte[] buffer = create!(ubyte[])(size);
+        ubyte[] buffer = New!(ubyte[])(size);
         scope(exit)
         {
-            destroy(buffer);
+            Delete(buffer);
         }
         auto readResult = file.read(buffer);
         if (!readResult.success)

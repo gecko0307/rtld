@@ -81,7 +81,7 @@ class Owner: Owned
     final void clearOwnedObjects()
     {
         foreach(i, obj; ownedObjects)
-            destroy(obj);
+            Delete(obj);
         ownedObjects.free();
     }
 
@@ -90,7 +90,7 @@ class Owner: Owned
     {
         if (ownedObjects.removeFirst(obj))
         {
-            destroy(obj);
+            Delete(obj);
         }
     }
 

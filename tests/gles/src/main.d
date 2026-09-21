@@ -220,14 +220,7 @@ class Application: SystemWindow
 
 void main()
 {
-    version(linux)
-    {
-        setenv("LIBGL_DRI3_ENABLE", "1", 1);
-        setenv("EGL_LOG_LEVEL", "debug", 1);
-        setenv("LIBGL_DEBUG", "verbose", 1);
-    }
-    
-    Application app = create!Application();
+    Application app = New!Application();
     app.run();
-    destroy(app);
+    Delete(app);
 }
