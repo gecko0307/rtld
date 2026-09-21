@@ -35,7 +35,7 @@ By default RTLD can be used with Phobos as a normal source package:
 }
 ```
 
-If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rtld:runtime` subpackage, and set necessary compiler parameters. We recommend LDC for this.
+If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rtld:runtime` subpackage, and set necessary compiler parameters that disable the default runtime:
 
 ```json
 "dependencies": {
@@ -45,8 +45,7 @@ If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rt
 "subConfigurations": {
     "rtld": "no-druntime"
 },
-"dflags-ldc": [
-    "--vgc",
+"dflags": [
     "-defaultlib=",
     "-debuglib="
 ]
