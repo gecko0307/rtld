@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.io;
 
+import rtld.core.traits;
 import rtld.libc.stdio;
 import rtld.text.encodings: toUTF8z;
 
@@ -73,7 +74,7 @@ void printStrLn(const(char)[] msg) @nogc nothrow
     printStr("\n");
 }
 
-private void writeArg(T)(T arg)
+void print(T)(T arg)
 {
     static if (is(T == const(char)[]) || is(T == string) || is(T == char[]))
     {
@@ -119,6 +120,17 @@ private void writeArg(T)(T arg)
     {
         printStr(arg ? "true" : "false");
     }
+    else static if (isArray!T)
+    {
+        printStr("[");
+        foreach(size_t i, ref element; arg)
+        {
+            if (i > 0)
+                printStr(", ");
+            print(element);
+        }
+        printStr("]");
+    }
     else static if (__traits(hasMember, T, "toString") && 
                     is(typeof(arg.toString()) : const(char)[]))
     {
@@ -150,7 +162,7 @@ private void writeArg(T)(T arg)
         {
             static if (i > 0)
                 printStr(", ");
-            writeArg(arg.tupleof[i]);
+            print(arg.tupleof[i]);
         }
         printStr(")");
     }
@@ -158,6 +170,12 @@ private void writeArg(T)(T arg)
     {
         printStr("{?}");
     }
+}
+
+void printLn(T)(T arg)
+{
+    print(arg);
+    printStr("\n");
 }
 
 void printFmt(Args...)(const(char)[] fmt, Args args)
@@ -191,7 +209,7 @@ void printFmt(Args...)(const(char)[] fmt, Args args)
                 {
                     if (!found && argIdx == idx) 
                     {
-                        writeArg(args[idx]);
+                        print(args[idx]);
                         found = true;
                     }
                 }

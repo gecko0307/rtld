@@ -25,52 +25,9 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
+module rtld.container;
 
 public
 {
-    import rtld.core;
-    import rtld.container;
-    import rtld.gl;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
-}
-
-void rtldInit() nothrow @nogc
-{
-    version(FreeStanding)
-    {
-    }
-    else
-    {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-    
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
-}
-
-version(Phobos)
-{
-    static this()
-    {
-        rtldInit();
-    }
+    import rtld.container.array;
 }
