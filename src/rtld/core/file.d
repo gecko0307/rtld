@@ -29,7 +29,7 @@ module rtld.core.file;
 
 version(Posix)
 {
-    import rtld.sys.posix.fcntl;
+    import rtld.sys.posix.fnctl;
     import rtld.sys.posix.unistd;
     
     alias PlatformHandle = int;
@@ -110,10 +110,10 @@ struct File
         if (path.length == 0)
             return FileOpenResult.Failure(cast(int)0x16); // EINVAL / ERROR_INVALID_PARAMETER
 
-        ubyte[1024] stackPath;
-        
         version(Posix)
         {
+            char[1024] stackPath;
+            
             if (path.length >= stackPath.length)
                 return FileOpenResult.Failure(cast(int)36); // ENAMETOOLONG
             
@@ -145,15 +145,7 @@ struct File
         }
         else version(Windows)
         {
-            /*
-            size_t writeIdx = 0;
-            foreach (size_t i; 0..path.length)
-            {
-                // TODO: transcode from UTF-8 to UTF-16
-                stackPath[writeIdx++] = cast(wchar)path[i];
-            }
-            stackPath[writeIdx] = '\0';
-            */
+            ubyte[1024] stackPath;
             
             const(wchar)* utf16Path = toUTF16z(path, stackPath);
             if (utf16Path is null)
@@ -318,11 +310,11 @@ struct File
             return FileStatResult.Failure(cast(int)0x16);
 
         FileStat info;
-        
-        ubyte[1024] stackPath;
 
         version(Posix)
         {
+            char[1024] stackPath;
+            
             if (path.length >= stackPath.length)
                 return FileStatResult.Failure(cast(int)36); // ENAMETOOLONG
             
@@ -338,7 +330,7 @@ struct File
             info.modificationTime = unixToDateTime(statBuf.st_mtime);
             info.isDirectory = (statBuf.st_mode & 0xF000) == 0x4000;
             
-            uint perms = FilePermission.none;
+            uint perms = FilePermission.None;
             if (.access(stackPath.ptr, R_OK) == 0) perms |= FilePermission.Read;
             if (.access(stackPath.ptr, W_OK) == 0) perms |= FilePermission.Write;
             if (.access(stackPath.ptr, X_OK) == 0) perms |= FilePermission.Execute;
@@ -348,15 +340,7 @@ struct File
         }
         else version(Windows)
         {
-            /*
-            size_t writeIdx = 0;
-            foreach (size_t i; 0..path.length)
-            {
-                // TODO: transcode from UTF-8 to UTF-16
-                stackPath[writeIdx++] = cast(wchar)path[i];
-            }
-            stackPath[writeIdx] = '\0';
-            */
+            ubyte[1024] stackPath;
             
             const(wchar)* utf16Path = toUTF16z(path, stackPath);
             if (utf16Path is null)

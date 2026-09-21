@@ -30,6 +30,7 @@ module rtld.sys.posix.unistd;
 version(Posix):
 
 public import rtld.sys.posix.sys.types;
+public import rtld.sys.posix.sys.stat;
 
 enum int SEEK_SET = 0;
 enum int SEEK_CUR = 1;
