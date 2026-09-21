@@ -27,7 +27,28 @@ DEALINGS IN THE SOFTWARE.
 */
 module object;
 
+import rtld.core.traits;
 import rtld.core.process;
+import rtld.hash.xxhash64;
+
+version(GNU)
+{
+}
+else version(X86_64)
+{
+    version(DigitalMars) version = WithArgTypes;
+    else version(Windows) { }
+    else version = WithArgTypes;
+}
+else version(AArch64)
+{
+    version(DigitalMars) version = WithArgTypes;
+    else version(OSX) {}
+    else version(iOS) {}
+    else version(TVOS) {}
+    else version(WatchOS) {}
+    else version = WithArgTypes;
+}
 
 alias size_t = typeof(int.init.sizeof);
 alias ptrdiff_t = typeof(cast(void*)0 - cast(void*)0);
@@ -35,34 +56,489 @@ alias string = immutable(char)[];
 alias wstring = immutable(wchar)[];
 alias noreturn = typeof(*null);
 
+enum immutable(void)* rtinfoNoPointers  = null;
+enum immutable(void)* rtinfoHasPointers = cast(void*)1;
+
 class Object
 {
-    void* _vptr;
-    void* _monitor;
+    string toString()
+    {
+        return typeid(this).name;
+    }
+    
+    size_t toHash() nothrow
+    {
+        return cast(size_t)cast(void*)this; // address-based
+    }
+    
+    int opCmp(Object o)
+    {
+        return 0;
+    }
+    
+    bool opEquals(Object o)
+    {
+        return this is o;
+    }
 }
 
-interface Interface { }
+struct OffsetTypeInfo
+{
+    size_t offset;
+    TypeInfo ti;
+}
 
-struct TypeInfo { }
-struct TypeInfo_Class { }
+class TypeInfo
+{
+    override string toString() const @safe nothrow
+    {
+        return typeid(this).name;
+    }
+
+    override size_t toHash() const nothrow
+    {
+        return xxHash64(this.toString(), 0);
+    }
+
+    override int opCmp(Object rhs)
+    {
+        return 0;
+    }
+
+    override bool opEquals(Object o)
+    {
+        return opEquals(cast(TypeInfo) o);
+    }
+
+    bool opEquals(const TypeInfo ti) @safe nothrow const
+    {
+        if (this is ti)
+            return true;
+        return ti && this.toString() == ti.toString();
+    }
+
+    size_t getHash(scope const void* p) @trusted nothrow const
+    {
+        return 0;
+    }
+
+    bool equals(in void* p1, in void* p2) const { return p1 == p2; }
+
+    int compare(in void* p1, in void* p2) const { return _xopCmp(p1, p2); }
+
+    @property size_t tsize() nothrow pure const @safe @nogc { return 0; }
+
+    void swap(void* p1, void* p2) const
+    {
+        size_t remaining = tsize;
+        if ((cast(size_t) p1 | cast(size_t) p2) % (void*).alignof == 0)
+        {
+            while (remaining >= (void*).sizeof)
+            {
+                void* tmp = *cast(void**) p1;
+                *cast(void**) p1 = *cast(void**) p2;
+                *cast(void**) p2 = tmp;
+                p1 += (void*).sizeof;
+                p2 += (void*).sizeof;
+                remaining -= (void*).sizeof;
+            }
+        }
+        for (size_t i = 0; i < remaining; i++)
+        {
+            byte t = (cast(byte *)p1)[i];
+            (cast(byte*)p1)[i] = (cast(byte*)p2)[i];
+            (cast(byte*)p2)[i] = t;
+        }
+    }
+
+    @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
+
+    version (LDC)
+    {
+        const(void)[] initializer() nothrow pure const @trusted @nogc
+        {
+            return (cast(const(void)*) null)[0 .. typeof(null).sizeof];
+        }
+    }
+    else
+    {
+        abstract const(void)[] initializer() nothrow pure const @safe @nogc;
+    }
+
+    @property uint flags() nothrow pure const @safe @nogc { return 0; }
+
+    const(OffsetTypeInfo)[] offTi() const { return null; }
+    void destroy(void* p) const {}
+    void postblit(void* p) const {}
+
+    @property size_t talign() nothrow pure const @safe @nogc { return tsize; }
+
+    version(WithArgTypes) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
+    {
+        arg1 = this;
+        return 0;
+    }
+
+    @property immutable(void)* rtInfo() nothrow pure const @trusted @nogc
+    {
+        return rtinfoHasPointers;
+    }
+}
+
+class TypeInfo_Const : TypeInfo
+{
+    TypeInfo base;
+}
+
+class TypeInfo_Invariant : TypeInfo_Const {}   // immutable(T)
+class TypeInfo_Shared    : TypeInfo_Const {}   // shared(T)
+class TypeInfo_Inout     : TypeInfo_Const {}   // inout(T)
+
+struct Interface
+{
+    TypeInfo_Class classinfo;
+    void*[] vtbl;
+    size_t offset;
+}
+
+class TypeInfo_Class: TypeInfo
+{
+    byte[] m_init;
+    string name;
+    void*[] vtbl;
+    Interface[] interfaces;
+    TypeInfo_Class base;
+    void* destructor;
+    void function(Object) classInvariant;
+    enum ClassFlags: ushort
+    {
+        isCOMclass = 0x1,
+        noPointers = 0x2,
+        hasOffTi = 0x4,
+        hasCtor = 0x8,
+        hasGetMembers = 0x10,
+        hasTypeInfo = 0x20,
+        isAbstract = 0x40,
+        isCPPclass = 0x80,
+        hasDtor = 0x100,
+        hasNameSig = 0x200,
+    }
+    ClassFlags m_flags;
+    ushort depth;
+    void* deallocator;
+    OffsetTypeInfo[] m_offTi;
+    void function(Object) defaultConstructor;
+    immutable(void)* m_RTInfo;
+    override @property immutable(void)* rtInfo() const { return m_RTInfo; }
+    uint[4] nameSig;
+}
+
+class TypeInfo_Interface : TypeInfo
+{
+    TypeInfo_Class info;
+}
 
 alias ClassInfo = TypeInfo_Class;
+
+class TypeInfo_i : TypeInfo { }
+class TypeInfo_l : TypeInfo { }
+class TypeInfo_m : TypeInfo { }
+class TypeInfo_v : TypeInfo { }
+class TypeInfo_w : TypeInfo { }
+class TypeInfo_Aya : TypeInfo { }
+class TypeInfo_u : TypeInfo { }
+class TypeInfo_f : TypeInfo { }
+class TypeInfo_k : TypeInfo { }
+class TypeInfo_t : TypeInfo { }
+
+class TypeInfo_Pointer : TypeInfo
+{
+    TypeInfo m_next;
+}
+
+class TypeInfo_Array : TypeInfo
+{
+    TypeInfo value;
+}
+
+class TypeInfo_StaticArray : TypeInfo
+{
+    TypeInfo value;
+    size_t   len;
+}
+
+class TypeInfo_Struct: TypeInfo
+{
+    override string toString() const { return name; }
+
+    override size_t toHash() const
+    {
+        return xxHash64(this.mangledName, 0);
+    }
+
+    override bool opEquals(Object o)
+    {
+        if (this is o)
+            return true;
+        auto s = cast(const TypeInfo_Struct)o;
+        return s && this.mangledName == s.mangledName;
+    }
+
+    override size_t getHash(scope const void* p) @trusted pure nothrow const
+    {
+        assert(p);
+        if (xtoHash)
+        {
+            return (*xtoHash)(p);
+        }
+        else
+        {
+            return xxHash64(p[0 .. initializer().length], 0);
+        }
+    }
+
+    override bool equals(in void* p1, in void* p2) @trusted pure nothrow const
+    {
+        import core.stdc.string : memcmp;
+
+        if (!p1 || !p2)
+            return false;
+        else if (xopEquals)
+        {
+            const dg = _memberFunc(p1, xopEquals);
+            return dg.xopEquals(p2);
+        }
+        else if (p1 == p2)
+            return true;
+        else
+            return memcmp(p1, p2, initializer().length) == 0;
+    }
+
+    override int compare(in void* p1, in void* p2) @trusted pure nothrow const
+    {
+        import core.stdc.string : memcmp;
+
+        if (p1 != p2)
+        {
+            if (p1)
+            {
+                if (!p2)
+                    return true;
+                else if (xopCmp)
+                {
+                    const dg = _memberFunc(p1, xopCmp);
+                    return dg.xopCmp(p2);
+                }
+                else
+                    return memcmp(p1, p2, initializer().length);
+            }
+            else
+                return -1;
+        }
+        return 0;
+    }
+
+    override @property size_t tsize() nothrow pure const
+    {
+        return initializer().length;
+    }
+
+    override const(void)[] initializer() nothrow pure const @safe
+    {
+        return m_init;
+    }
+
+    override @property uint flags() nothrow pure const { return m_flags; }
+
+    override @property size_t talign() nothrow pure const { return m_align; }
+
+    final override void destroy(void* p) const
+    {
+        if (xdtor)
+        {
+            if (m_flags & StructFlags.isDynamicType)
+                (*xdtorti)(p, this);
+            else
+                (*xdtor)(p);
+        }
+    }
+
+    override void postblit(void* p) const
+    {
+        if (xpostblit)
+            (*xpostblit)(p);
+    }
+
+    string mangledName;
+    
+    final @property string name() pure nothrow const @trusted
+    {
+        /*
+        import core.demangle : demangleType;
+
+        if (mangledName is null) // e.g., opaque structs
+            return null;
+
+        const key = cast(const void*) this; // faster lookup than TypeInfo_Struct, at the cost of potential duplicates per binary
+        static string[typeof(key)] demangledNamesCache; // per thread
+
+        // not nothrow:
+        //return demangledNamesCache.require(key, cast(string) demangleType(mangledName));
+
+        if (auto pDemangled = key in demangledNamesCache)
+            return *pDemangled;
+
+        const demangled = cast(string) demangleType(mangledName);
+        demangledNamesCache[key] = demangled;
+        return demangled;
+        */
+        
+        return mangledName;
+    }
+
+    void[] m_init;
+
+    @safe pure nothrow
+    {
+        size_t   function(in void*)           xtoHash;
+        bool     function(in void*, in void*) xopEquals;
+        int      function(in void*, in void*) xopCmp;
+        string   function(in void*)           xtoString;
+
+        enum StructFlags : uint
+        {
+            hasPointers = 0x1,
+            isDynamicType = 0x2,
+        }
+        StructFlags m_flags;
+    }
+    union
+    {
+        void function(void*)                xdtor;
+        void function(void*, const TypeInfo_Struct ti) xdtorti;
+    }
+    void function(void*)                    xpostblit;
+
+    uint m_align;
+
+    override @property immutable(void)* rtInfo() nothrow pure const @safe { return m_RTInfo; }
+
+    version (WithArgTypes)
+    {
+        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+        {
+            arg1 = m_arg1;
+            arg2 = m_arg2;
+            return 0;
+        }
+        TypeInfo m_arg1;
+        TypeInfo m_arg2;
+    }
+    immutable(void)* m_RTInfo;
+
+    private struct _memberFunc
+    {
+        union
+        {
+            struct // delegate
+            {
+                const void* ptr;
+                const void* funcptr;
+            }
+            @safe pure nothrow
+            {
+                bool delegate(in void*) xopEquals;
+                int delegate(in void*) xopCmp;
+            }
+        }
+    }
+}
+
+class TypeInfo_AssociativeArray : TypeInfo
+{
+    TypeInfo value;
+    TypeInfo key;
+}
+
+class TypeInfo_Vector : TypeInfo
+{
+    TypeInfo base;
+}
+
+class TypeInfo_Function : TypeInfo
+{
+    TypeInfo next;
+    string   deco;
+}
+
+class TypeInfo_Delegate : TypeInfo
+{
+    TypeInfo next;
+    string   deco;
+}
+
+class TypeInfo_Enum : TypeInfo
+{
+    TypeInfo base;
+    string   name;
+    void[]   m_init;
+}
+
+class TypeInfo_Tuple : TypeInfo
+{
+    TypeInfo[] elements;
+}
 
 extern(C)
 {
     bool _xopEquals(const(void)* p1, const(void)* p2) @nogc nothrow { return p1 == p2; }
     int _xopCmp(const(void)* p1, const(void)* p2) @nogc nothrow { return 0; }
-}
+    
+    void _d_assert(string file, uint line) @nogc nothrow
+    {
+        exit(1);
+    }
 
-extern(C) void _d_assert(string file, uint line) @nogc nothrow
-{
-    exit(1);
-}
-
-extern(C)
-{
     void _d_callinterfacector(void* p) @nogc nothrow {}
     void _d_callinterfacedtor(void* p) @nogc nothrow {}
+    
+    To _d_cast(To, From)(From o) @trusted
+        if ((is(From == class) || is(From == interface)) &&
+            (is(To   == class) || is(To   == interface)))
+    {
+        if (o is null)
+            return null;
+
+        Object obj = cast(Object) o;
+
+        alias U = Unqual!To;
+        static if (is(U == interface))
+            auto target = (cast(TypeInfo_Interface) cast(void*) typeid(U)).info;
+        else
+            auto target = cast(TypeInfo_Class) cast(void*) typeid(U);
+
+        size_t offset = 0;
+        if (_d_isbaseof2(typeid(obj), target, offset))
+            return cast(To)(cast(void*) obj + offset);
+        return null;
+    }
+    
+    Object _d_class_cast(Object o, ClassInfo c)
+    {
+        if (!o)
+            return null;
+
+        ClassInfo ci = o.classinfo;
+        
+        while (ci)
+        {
+            if (ci is c)
+                return o;
+            ci = ci.base;
+        }
+        
+        return null;
+    }
     
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow {}
     
@@ -72,4 +548,72 @@ extern(C)
     {
         exit(1);
     }
+
+    void* _memsetFloat(void* p, float value, size_t count)
+    {
+        float* fp = cast(float*)p;
+        for (size_t i = 0; i < count; i++)
+        {
+            fp[i] = value;
+        }
+        return p;
+    }
+
+    void* _memset128ii(void* p, ulong qword_value, size_t count)
+    {
+        ulong* lp = cast(ulong*)p;
+        for (size_t i = 0; i < count * 2; i += 2)
+        {
+            lp[i] = qword_value;
+            lp[i + 1] = qword_value;
+        }
+        return p;
+    }
+}
+
+template __supportsClassInfo(T)
+{
+    static if (is(T == class))
+        enum __supportsClassInfo = true;
+    else
+        enum __supportsClassInfo = false;
+}
+
+private bool _d_isbaseof2(scope TypeInfo_Class oc, scope const TypeInfo_Class c,
+                          scope ref size_t offset) @safe pure nothrow @nogc
+{
+    if (oc is c)
+        return true;
+
+    do
+    {
+        if (oc.base is c)
+            return true;
+
+        foreach (iface; oc.interfaces)
+        {
+            if (iface.classinfo is c || _d_isbaseof2(iface.classinfo, c, offset))
+            {
+                offset += iface.offset;
+                return true;
+            }
+        }
+        oc = oc.base;
+    }
+    while (oc !is null);
+
+    return false;
+}
+
+bool __equals(T)(in T[] a, in T[] b)
+{
+    if (a.length != b.length)
+        return false;
+        
+    for (size_t i = 0; i < a.length; i++)
+    {
+        if (a[i] != b[i])
+            return false;
+    }
+    return true;
 }

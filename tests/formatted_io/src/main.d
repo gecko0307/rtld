@@ -17,7 +17,7 @@ class SomeClass
         this.data = data;
     }
     
-    string toString()
+    override string toString()
     {
         return data;
     }

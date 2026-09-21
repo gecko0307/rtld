@@ -40,7 +40,7 @@ else version(FreeStanding)
 else
 {
     T create(T, Args...)(Args args)
-        if (isClass!T)
+        if (is(T == class))
     {
         enum size = __traits(classInstanceSize, T);
         void* memory = malloc(size);
@@ -74,7 +74,7 @@ else
     }
 
     void destroy(T)(ref T instance)
-        if (is(T == class)) 
+        if (is(T == class) || is(T == interface))
     {
         if (instance is null) return;
         void* memory = cast(void*)instance;

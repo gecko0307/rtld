@@ -27,7 +27,6 @@
     ],
     
     "dflags-ldc": [
-        "--vgc",
         "-defaultlib=",
         "-debuglib="
     ],
