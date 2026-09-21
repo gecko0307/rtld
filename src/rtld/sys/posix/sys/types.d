@@ -25,17 +25,59 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-
-module rtld.sys.posix;
+module rtld.sys.posix.sys.types;
 
 version(Posix):
 
-public
+alias int_t = int;
+alias mode_t = uint;
+alias off_t = long;
+alias pid_t = int;
+alias size_t_posix = size_t;
+alias ssize_t = ptrdiff_t;
+
+version(Linux)
 {
-    import rtld.sys.posix.sys.types;
-    import rtld.sys.posix.dlfcn;
-    import rtld.sys.posix.fnctl;
-    import rtld.sys.posix.pthread;
-    import rtld.sys.posix.time;
-    import rtld.sys.posix.unistd;
+    struct stat_t
+    {
+        ulong st_dev;
+        ulong st_ino;
+        ulong st_nlink;
+        uint  st_mode;
+        uint  st_uid;
+        uint  st_gid;
+        int   __pad0;
+        ulong st_rdev;
+        long  st_size;
+        long  st_blksize;
+        long  st_blocks;
+        long  st_atime; ulong st_atime_nsec;
+        long  st_mtime; ulong st_mtime_nsec;
+        long  st_ctime; ulong st_ctime_nsec;
+        long[3] __unused;
+    }
+    extern(C) @nogc nothrow int fstat(int fd, stat_t* buf);
+}
+version(OSX) {
+    struct stat_t {
+        int      st_dev;
+        uint     st_mode;
+        ushort   st_nlink;
+        ulong    st_ino;
+        uint     st_uid;
+        uint     st_gid;
+        int      st_rdev;
+        long     st_atime; ulong st_atime_nsec;
+        long     st_mtime; ulong st_mtime_nsec;
+        long     st_ctime; ulong st_ctime_nsec;
+        long     st_birthtime; ulong st_birthtime_nsec;
+        long     st_size; // Размер файла
+        long     st_blocks;
+        int      st_blksize;
+        uint     st_flags;
+        uint     st_gen;
+        int      st_lspare;
+        long[2]  st_qspare;
+    }
+    extern(C) @nogc nothrow int fstat(int fd, stat_t* buf);
 }

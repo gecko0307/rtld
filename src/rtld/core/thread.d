@@ -48,19 +48,21 @@ class Thread
     void function() func;
     void delegate() dlgt;
     bool callFunc;
+    
+   private:
+    
     bool initialized = false;
-    
-   public:
-    
     version(Windows)
     {
-        private void* winThread;
+        void* winThread;
     }
     else version(Posix)
     {
-        private pthread_t posixThread;
-        private bool running = false;
+        pthread_t posixThread;
+        bool running = false;
     }
+    
+   public:
     
     /// Constructor. Initializes a thread using a function pointer
     this(void function() func)
@@ -159,6 +161,7 @@ class Thread
     
     version(Windows)
     {
+        // Thread entry point for Windows
         private extern(Windows) static uint winThreadFunc(const(void)* lpParam)
         {
             Thread t = cast(Thread)lpParam;
@@ -171,6 +174,7 @@ class Thread
     }
     else version(Posix)
     {
+        // Thread entry point for POSIX
         private extern(C) static void* posixThreadFunc(void* arg)
         {
             Thread t = cast(Thread)arg;

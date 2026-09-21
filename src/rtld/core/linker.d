@@ -52,7 +52,6 @@ SharedLib openLibrary(string filename) @nogc nothrow
     }
     else
     {
-        pragma(msg, "Warning: \"openLibrary\" is not implemented on this platform!");
         return null;
     }
 }
@@ -70,7 +69,6 @@ void* getFunctionPointer(SharedLib lib, string name) @nogc nothrow
     }
     else
     {
-        pragma(msg, "Warning: \"getFunctionPointer\" is not implemented on this platform!");
         return null;
     }
 }
@@ -88,7 +86,6 @@ bool closeLibrary(SharedLib lib) nothrow @nogc
     }
     else
     {
-        pragma(msg, "Warning: \"closeLibrary\" is not implemented on this platform!");
         return false;
     }
 }

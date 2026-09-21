@@ -32,4 +32,5 @@ public
 {
     import rtld.text.common;
     import rtld.text.utf8;
+    import rtld.text.utf16;
 }

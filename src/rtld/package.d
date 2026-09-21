@@ -48,6 +48,13 @@ void rtldInit() nothrow @nogc
     }
     else
     {
+        version(Windows)
+        {
+            // Set console code page to UTF-8
+            SetConsoleCP(CP_UTF8);
+            SetConsoleOutputCP(CP_UTF8);
+        }
+    
         rtld.random.random.init();
         rtld.time.datetime.init();
         version(linux)

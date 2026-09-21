@@ -223,8 +223,6 @@ void main()
     version(linux)
     {
         setenv("LIBGL_DRI3_ENABLE", "1", 1);
-        //setenv("LIBGL_ALWAYS_SOFTWARE", "0", 1);
-        //setenv("GALLIUM_DRIVER", "", 1); 
         setenv("EGL_LOG_LEVEL", "debug", 1);
         setenv("LIBGL_DEBUG", "verbose", 1);
     }

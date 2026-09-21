@@ -25,17 +25,39 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-
-module rtld.sys.posix;
+module rtld.sys.posix.fnctl;
 
 version(Posix):
 
-public
+public import rtld.sys.posix.sys.types;
+
+enum int O_RDONLY = 0x0000;
+enum int O_WRONLY = 0x0001;
+enum int O_RDWR   = 0x0002;
+
+version(linux)
 {
-    import rtld.sys.posix.sys.types;
-    import rtld.sys.posix.dlfcn;
-    import rtld.sys.posix.fnctl;
-    import rtld.sys.posix.pthread;
-    import rtld.sys.posix.time;
-    import rtld.sys.posix.unistd;
+    enum int O_CREAT   = 0x0040;
+    enum int O_EXCL    = 0x0080;
+    enum int O_TRUNC   = 0x0200;
+    enum int O_APPEND  = 0x0400;
+    enum int O_CLOEXEC = 0x80000;
+    enum int AT_FDCWD  = -100;
+} 
+else version(OSX)
+{
+    enum int O_CREAT   = 0x0200;
+    enum int O_EXCL    = 0x0800;
+    enum int O_TRUNC   = 0x0400;
+    enum int O_APPEND  = 0x0008;
+    enum int O_CLOEXEC = 0x1000000;
+     enum int AT_FDCWD  = -2;
+}
+
+extern(C) @nogc nothrow
+{
+    int creat(const(char)* path, mode_t mode);
+    int fcntl(int fd, int cmd, ...);
+    int open(const(char)* path, int flags, ...);
+    int openat(int dirfd, const(char)* path, int flags, ...);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2026 Timur Gafarov
+Copyright (c) 2018-2025 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -26,16 +26,55 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module rtld.sys.posix;
-
-version(Posix):
+module rtld.text.encodings;
 
 public
 {
-    import rtld.sys.posix.sys.types;
-    import rtld.sys.posix.dlfcn;
-    import rtld.sys.posix.fnctl;
-    import rtld.sys.posix.pthread;
-    import rtld.sys.posix.time;
-    import rtld.sys.posix.unistd;
+    import rtld.text.utf8;
+    import rtld.text.utf16;
+}
+
+/**
+* Transcodes a UTF-8 slice into a null-terminated UTF-16 LE string within a byte buffer.
+*/
+const(wchar)* toUTF16z(string input, ubyte[] destBuffer) @nogc nothrow
+{
+    if (destBuffer.length < 2)
+        return null;
+
+    UTF8Decoder decoder;
+    decoder.input = input;
+    decoder.index = 0;
+
+    UTF16LEEncoder encoder;
+
+    size_t writeIdx = 0;
+    // Leave the last 2 bytes free for the mandatory UTF-16 null terminator (U+0000)
+    size_t maxWriteLen = destBuffer.length - 2; 
+
+    while (!decoder.eos())
+    {
+        int codePoint = decoder.decodeNext();
+
+        if (codePoint == UTF8_END) break;
+        if (codePoint == UTF8_ERROR)
+            return null;
+
+        // Check if there is space in the buffer to write a potential surrogate pair (4 bytes)
+        if (writeIdx >= maxWriteLen)
+            return null;
+
+        // Pass the remaining free buffer space to the encoder
+        size_t bytesWritten = encoder.encode(cast(uint)codePoint, destBuffer[writeIdx..$]);
+        
+        if (bytesWritten == 0)
+            return null; // Encoding error
+        
+        writeIdx += bytesWritten;
+    }
+
+    destBuffer[writeIdx] = 0;
+    destBuffer[writeIdx + 1] = 0;
+
+    return cast(const(wchar)*)destBuffer.ptr;
 }

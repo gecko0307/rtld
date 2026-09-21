@@ -251,10 +251,14 @@ struct UTF8Encoder
 {
     /**
      * Encodes a Unicode code point to UTF-8 into user-provided buffer.
+     * Buffer must be at least 4 bytes length.
      * Returns number of bytes written, or 0 at error.
      */
-    size_t encode(uint c, char[] buffer) @nogc nothrow
+    size_t encode(uint c, ubyte[] buffer) @nogc nothrow
     {
+        if (buffer.length < 4)
+            return 0;
+        
         if (c <= 0x7F)
         {
             // Plain ASCII

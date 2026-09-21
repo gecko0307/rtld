@@ -29,9 +29,26 @@ module rtld.sys.posix.unistd;
 
 version(Posix):
 
-alias pid_t = int;
+public import rtld.sys.posix.sys.types;
+
+enum int SEEK_SET = 0;
+enum int SEEK_CUR = 1;
+enum int SEEK_END = 2;
+
+enum int F_OK = 0;
+enum int X_OK = 1;
+enum int W_OK = 2;
+enum int R_OK = 4;
 
 extern(C) nothrow @nogc
 {
     pid_t getpid();
+    
+    int close(int fd);
+    int fsync(int fd);
+    off_t lseek(int fildes, off_t offset, int whence);
+    ssize_t read(int fd, void* buf, size_t_posix count);
+    ssize_t write(int fd, const(void)* buf, size_t_posix count);
+    int access(const(char)* path, int mode);
+    int stat(const(char)* path, stat_t* statbuf);
 }

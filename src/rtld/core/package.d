@@ -3,6 +3,7 @@ module rtld.core;
 public
 {
     import rtld.core.io;
+    import rtld.core.file;
     import rtld.core.linker;
     import rtld.core.memory;
     import rtld.core.mutex;

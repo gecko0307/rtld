@@ -111,3 +111,18 @@ DateTime currentTimeUTC() nothrow @nogc
     gmtime_s(&t, &timeInfo);
     return dateTimeFromTm(&timeInfo);
 }
+
+/// Converts Unix timestamp to DateTime.
+DateTime unixToDateTime(long seconds) nothrow @nogc
+{
+    time_t t = cast(time_t)seconds;
+    tm timeInfo = void;
+    gmtime_s(&t, &timeInfo);
+    return dateTimeFromTm(&timeInfo);
+}
+
+long fileTimeToUnixSecs(uint low, uint high) nothrow @nogc
+{
+    long ft = (cast(long)high << 32) | low;
+    return (ft - 116444736000000000L) / 10000000L;
+}

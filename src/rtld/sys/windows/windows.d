@@ -38,6 +38,7 @@ alias HANDLE = void*;
 alias HMODULE = void*;
 alias BYTE = ubyte;
 alias WORD = ushort;
+alias WCHAR = wchar;
 alias BOOL = int;
 alias DWORD = uint;
 alias UINT = uint;
@@ -144,6 +145,38 @@ struct RTL_CRITICAL_SECTION
 alias PRTL_CRITICAL_SECTION = RTL_CRITICAL_SECTION*;
 alias CRITICAL_SECTION = RTL_CRITICAL_SECTION;
 alias LPCRITICAL_SECTION = PRTL_CRITICAL_SECTION;
+
+enum DWORD GENERIC_READ  = 0x80000000;
+enum DWORD GENERIC_WRITE = 0x40000000;
+enum DWORD FILE_SHARE_READ = 0x00000001;
+enum DWORD CREATE_NEW        = 1;
+enum DWORD CREATE_ALWAYS     = 2;
+enum DWORD OPEN_EXISTING     = 3;
+enum DWORD OPEN_ALWAYS       = 4;
+enum DWORD TRUNCATE_EXISTING = 5;
+enum DWORD FILE_ATTRIBUTE_NORMAL = 0x00000080;
+enum DWORD FILE_BEGIN   = 0;
+enum DWORD FILE_CURRENT = 1;
+enum DWORD FILE_END     = 2;
+
+struct WIN32_FILE_ATTRIBUTE_DATA
+{
+    DWORD dwFileAttributes;
+    uint ftCreationTime_dwLowDateTime;
+    uint ftCreationTime_dwHighDateTime;
+    uint ftLastAccessTime_dwLowDateTime;
+    uint ftLastAccessTime_dwHighDateTime;
+    uint ftLastWriteTime_dwLowDateTime;
+    uint ftLastWriteTime_dwHighDateTime;
+    DWORD nFileSizeHigh;
+    DWORD nFileSizeLow;
+}
+
+enum int GetFileExInfoStandard = 0;
+enum DWORD FILE_ATTRIBUTE_READONLY = 0x00000001;
+enum DWORD FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+
+enum CP_UTF8 = 65001;
 
 struct POINT
 {
@@ -322,23 +355,25 @@ enum SM_CYSCREEN = 1;
 
 extern(Windows) nothrow @nogc
 {
+    // Errors
+    DWORD GetLastError();
+    
+    // Process
     DWORD GetCurrentProcessId();
     VOID ExitProcess(uint uExitCode);
     
-    HANDLE GetStdHandle(DWORD nStdHandle);
-    BOOL WriteFile(HANDLE hFile, const(VOID)* lpBuffer, DWORD nNumberOfBytesToWrite, DWORD* lpNumberOfBytesWritten, VOID* lpOverlapped);
-    
+    // Dynamic libraries
     HMODULE LoadLibraryA(LPCSTR lpLibFileName);
     HMODULE LoadLibraryW(LPCWSTR lpLibFileName);
     FARPROC GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
     BOOL FreeLibrary(HMODULE hModule);
-    DWORD GetLastError();
     
+    // Timer
     BOOL QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
     BOOL QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
-    
     VOID Sleep(DWORD dwMilliseconds);
     
+    // Threads
     void* CreateThread(
         const(SECURITY_ATTRIBUTES)* lpThreadAttributes,
         size_t dwStackSize,
@@ -347,24 +382,57 @@ extern(Windows) nothrow @nogc
         uint dwCreationFlags,
         uint* lpThreadId
     );
-
     uint WaitForMultipleObjects(
         uint nCount,
         const(HANDLE)* lpHandles,
         int bWaitAll,
         uint dwMilliseconds
     );
-
     int TerminateThread(const(void)* hThread, uint dwExitCode);
     int GetExitCodeThread(const(void)* hThread, uint* lpExitCode);
-    int CloseHandle(const(void)* hObject);
-    
     VOID InitializeCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     VOID EnterCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     BOOL TryEnterCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     VOID LeaveCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     VOID DeleteCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     
+    // Files
+    HANDLE GetStdHandle(DWORD nStdHandle);
+    BOOL CloseHandle(HANDLE hObject);
+    HANDLE CreateFileW(
+        const(WCHAR)* lpFileName,
+        DWORD dwDesiredAccess,
+        DWORD dwShareMode,
+        void* lpSecurityAttributes,
+        DWORD dwCreationDisposition,
+        DWORD dwFlagsAndAttributes,
+        HANDLE hTemplateFile);
+    BOOL ReadFile(
+        HANDLE hFile,
+        void* lpBuffer,
+        DWORD nNumberOfBytesToRead,
+        DWORD* lpNumberOfBytesRead,
+        void* lpOverlapped);
+    BOOL WriteFile(
+        HANDLE hFile,
+        const(void)* lpBuffer,
+        DWORD nNumberOfBytesToWrite,
+        DWORD* lpNumberOfBytesWritten,
+        void* lpOverlapped);
+    BOOL SetFilePointerEx(
+        HANDLE hFile,
+        long liDistanceToMove,
+        long* lpNewFilePointer,
+        DWORD dwMoveMethod);
+    BOOL FlushFileBuffers(HANDLE hFile);
+    BOOL GetFileSizeEx(HANDLE hFile, long* lpFileSize);
+    BOOL GetFileAttributesExW(const(wchar)* lpFileName, int fInfoLevelId, void* lpFileInformation);
+    
+    // Console
+    BOOL SetConsoleCP(UINT wCodePageID);
+    BOOL SetConsoleOutputCP(UINT wCodePageID);
+    
+    // Display and windows
     LONG_PTR SetWindowLongPtrW(HWND hWnd, int nIndex, LONG_PTR dwNewLong);
     LONG_PTR GetWindowLongPtrW(HWND hWnd, int nIndex);
 
@@ -420,6 +488,7 @@ extern(Windows) nothrow @nogc
 }
 
 alias LoadLibrary = LoadLibraryW;
+alias GetFileAttributesEx = GetFileAttributesExW;
 alias SetWindowLongPtr = SetWindowLongPtrW;
 alias GetWindowLongPtr = GetWindowLongPtrW;
 alias DefWindowProc = DefWindowProcW;
