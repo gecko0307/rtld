@@ -7,11 +7,7 @@
         "Timur Gafarov"
     ],
     "dependencies": {
-        "rtld": { "path": "../.." },
-        "rtld:runtime": { "path": "../.." }
-    },
-    "subConfigurations": {
-        "rtld": "no-druntime"
+        "rtld": { "path": "../.." }
     },
     
     "importPaths": [
@@ -24,11 +20,6 @@
     
     "buildRequirements": [
         "allowWarnings"
-    ],
-    
-    "dflags": [
-        "-defaultlib=",
-        "-debuglib="
     ],
     
     "lflags-linux": ["-rpath=$$ORIGIN"]

@@ -39,7 +39,7 @@ else version(FreeStanding)
 }
 else
 {
-    T create(T, Args...)(Args args)
+    T New(T, Args...)(Args args)
         if (is(T == class))
     {
         enum size = __traits(classInstanceSize, T);
@@ -56,7 +56,7 @@ else
         return instance;
     }
 
-    T create(T)(size_t length) @nogc nothrow
+    T New(T)(size_t length) @nogc nothrow
         if (isArray!T)
     {
         alias AT = ElementType!T;
@@ -73,7 +73,7 @@ else
         return arr;
     }
 
-    void destroy(T)(ref T instance)
+    void Delete(T)(ref T instance)
         if (is(T == class) || is(T == interface))
     {
         if (instance is null) return;
@@ -86,7 +86,7 @@ else
         instance = null;
     }
     
-    void destroy(T)(ref T arr) @nogc nothrow
+    void Delete(T)(ref T arr) @nogc nothrow
         if (isArray!T)
     {
         void* memory = cast(void*)arr.ptr;

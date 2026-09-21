@@ -29,7 +29,7 @@ void main()
     int code = 200;
     float num = 0.5f;
     Property prop = Property("Money", 100);
-    SomeClass someClass = create!SomeClass("Foo");
+    SomeClass someClass = New!SomeClass("Foo");
     scope(exit)
     {
         destroy(someClass);

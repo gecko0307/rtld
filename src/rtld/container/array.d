@@ -73,7 +73,7 @@ struct Array(T, size_t chunkSize = 32)
     {
         if (numChunks == 0)
         {
-            dynamicStorage = create!(T[])(chunkSize);
+            dynamicStorage = New!(T[])(chunkSize);
         }
         else
         {
@@ -113,7 +113,7 @@ struct Array(T, size_t chunkSize = 32)
         {
             if (numChunks == 0)
             {
-                dynamicStorage = create!(T[])(amount);
+                dynamicStorage = New!(T[])(amount);
                 foreach(i, v; staticStorage)
                     dynamicStorage[i] = v;
             }
@@ -749,7 +749,7 @@ struct Array(T, size_t chunkSize = 32)
     void free() nothrow @nogc
     {
         if (dynamicStorage.length)
-            destroy(dynamicStorage);
+            Delete(dynamicStorage);
         numChunks = 0;
         pos = 0;
     }
@@ -757,13 +757,13 @@ struct Array(T, size_t chunkSize = 32)
 
 void reallocateArray(T)(ref T[] buffer, const(size_t) len) nothrow @nogc
 {
-    T[] buffer2 = create!(T[])(len);
+    T[] buffer2 = New!(T[])(len);
     for(uint i = 0; i < buffer2.length; i++)
     {
         if (i < buffer.length)
             buffer2[i] = buffer[i];
     }
-    destroy(buffer);
+    Delete(buffer);
     buffer = buffer2;
 }
 
