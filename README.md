@@ -13,14 +13,16 @@ RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64
 ## Features
 
 - `rtld.core` - cross-platform core API, including file I/O, memory allocator, dynamic library loader, threads, window management, etc.
+- `rtld.container` - generic data containers (WIP)
 - `rtld.gl`- OpenGL ES 2/3
+- `rtld.hash` - non-cryptographic hash functions
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - basic math functions
 - `rtld.random` - platform-independent non-cryptographic RNG based on Permuted Congruential Generator
 - `rtld.sys.windows` - WinAPI binding (WIP)
 - `rtld.sys.posix` - POSIX binding (WIP)
 - `rtld.sys.linux` - Linux kernel API and subsystems binding (WIP)
-- `rtld.test` - text encodings implementation
+- `rtld.text` - text encodings implementation (UTF-8, UTF-16)
 - `rtld.time` - cross-platform date-time functions.
 
 ## Usage
@@ -33,7 +35,7 @@ By default RTLD can be used with Phobos as a normal source package:
 }
 ```
 
-If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rtld:runtime`, and set necessary compiler parameters. We recommend LDC for this.
+If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rtld:runtime` subpackage, and set necessary compiler parameters. We recommend LDC for this.
 
 ```json
 "dependencies": {
