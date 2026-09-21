@@ -64,4 +64,11 @@ extern(C)
     void _d_callinterfacedtor(void* p) @nogc nothrow {}
     
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow {}
+    
+    void* _d_eh_personality = null;
+    
+    void _Unwind_Resume(void* exception_object) @nogc nothrow
+    {
+        exit(1);
+    }
 }
