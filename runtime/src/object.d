@@ -195,17 +195,19 @@ class TypeInfo
     }
 }
 
-class TypeInfo_Const : TypeInfo
+class TypeInfo_Const: TypeInfo
 {
     TypeInfo base;
 }
 
-class TypeInfo_Invariant : TypeInfo_Const {}   // immutable(T)
-class TypeInfo_Shared    : TypeInfo_Const {}   // shared(T)
-class TypeInfo_Inout     : TypeInfo_Const {}   // inout(T)
+class TypeInfo_Invariant: TypeInfo_Const {} // immutable(T)
+class TypeInfo_Shared: TypeInfo_Const {} // shared(T)
+class TypeInfo_Inout: TypeInfo_Const {} // inout(T)
 
 class TypeInfo_Class: TypeInfo
 {
+    override @property uint flags() nothrow pure const { return 1; }
+    
     byte[] m_init;
     string name;
     void*[] vtbl;
@@ -706,6 +708,18 @@ extern(C)
         void[] result = New(totalSize, "object.d", __LINE__);
         result = result.ptr[0..length];
         return result;
+    }
+    
+    void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
+    {
+        auto elem_ti = ti.next;
+        const size_t totalSize = length * elem_ti.tsize;
+
+        if (totalSize == 0)
+            error("Failed to allocate an array literal");
+
+        void[] result = New(totalSize, "object.d", __LINE__);
+        return result.ptr;
     }
     
     // TODO: _d_newarrayT
