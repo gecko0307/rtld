@@ -256,6 +256,19 @@ class TypeInfoGeneric(T, Base = T): TypeInfo
     {
         return cast(inout)typeid(T);
     }
+    
+    override const(void)[] initializer() nothrow pure const @trusted @nogc
+    {
+        static if (__traits(isZeroInit, T))
+        {
+            return null; 
+        }
+        else
+        {
+            static immutable T initVal = T.init;
+            return (cast(const(void)*)&initVal)[0..T.sizeof];
+        }
+    }
 }
 
 class TypeInfo_v : TypeInfoGeneric!ubyte
@@ -356,7 +369,7 @@ class TypeInfo_Array: TypeInfo
 
     override const(void)[] initializer() const @trusted
     {
-        return (cast(void *)null)[0 .. (void[]).sizeof];
+        return (cast(void*)null)[0 .. (void[]).sizeof];
     }
 
     override void swap(void* p1, void* p2) const
@@ -710,6 +723,47 @@ extern(C)
         return result;
     }
     
+    void[] _d_newarrayT(const TypeInfo ti, size_t length)
+    {
+        auto elem_ti = ti.next;
+        size_t elemSize = elem_ti.tsize;
+        const size_t totalSize = elemSize * length;
+
+        if (totalSize == 0)
+            error("Failed to allocate an array literal");
+
+        void[] result = New(totalSize, "object.d", __LINE__);
+        
+        ubyte* bytePtr = cast(ubyte*)result.ptr;
+
+        const void[] initVal = elem_ti.initializer();
+
+        if (initVal.ptr is null)
+        {
+            for (size_t i = 0; i < totalSize; i++)
+                bytePtr[i] = 0;
+        }
+        else
+        {
+            const ubyte* initPtr = cast(const(ubyte)*)initVal.ptr;
+            
+            for (size_t i = 0; i < length; i++)
+            {
+                size_t offset = i * elemSize;
+                for (size_t b = 0; b < elemSize; b++)
+                    bytePtr[offset + b] = initPtr[b];
+            }
+        }
+        
+        result = result.ptr[0..length];
+        return result;
+    }
+    
+    extern(C) void[] _d_newarrayiT(const TypeInfo ti, size_t length)
+    {
+        return _d_newarrayT(ti, length);
+    }
+    
     void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
     {
         auto elem_ti = ti.next;
@@ -721,8 +775,6 @@ extern(C)
         void[] result = New(totalSize, "object.d", __LINE__);
         return result.ptr;
     }
-    
-    // TODO: _d_newarrayT
     
     void _d_array_slice_copy(void* dst, size_t dstlen, void* src, size_t srclen, size_t elemsz) nothrow @nogc
     {
@@ -920,6 +972,14 @@ extern(C)
         }
         return p;
     }
+}
+
+T[] _d_newarrayT(T)(size_t length, bool isShared = false)
+{
+    if (length == 0)
+        return [];
+    size_t allocsize = length * T.sizeof;
+    return New!(T[])(allocsize, "object.d", __LINE__);
 }
 
 void* _d_arrayliteralTX(T)(size_t length)
