@@ -1,6 +1,6 @@
 {
     "name": "test",
-    "description": "RTLD simple test",
+    "description": "RTLD text encodings test",
     "homepage": "",
     "license": "BSL-1.0",
     "authors": [
