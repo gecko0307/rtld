@@ -27,6 +27,10 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.atomic;
 
+version(Phobos)
+{
+    public import core.atomic;
+}
 version(LDC)
 {
     import ldc.llvmasm;
