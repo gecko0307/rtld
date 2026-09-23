@@ -38,10 +38,10 @@ module rtld.memory;
 public
 {
     import rtld.memory.allocator;
-    //import rtld.memory.gcallocator;
+    //import rtld.memory.gcallocator; // TODO
     import rtld.memory.mallocator;
-    //import rtld.memory.mmappool;
-    //import rtld.memory.arena;
+    //import rtld.memory.mmappool; // TODO
+    import rtld.memory.arena;
 }
 
 private __gshared Allocator allocator;

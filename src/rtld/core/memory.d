@@ -31,6 +31,7 @@ import rtld.core.atomic;
 import rtld.core.io;
 import rtld.core.traits;
 import rtld.core.errors;
+import rtld.core.process;
 import rtld.libc.string;
 import rtld.memory;
 
@@ -67,7 +68,19 @@ else
     }
     
     ///
-    MPRecord* memRecord(void* memory)
+    ulong allocatedMemory() @nogc nothrow
+    {
+        return _allocatedMemory;
+    }
+    
+    ///
+    ulong allocationCount() @nogc nothrow
+    {
+        return _allocationCount;
+    }
+    
+    ///
+    MPRecord* memRecord(void* memory) @nogc nothrow
     {
         if (_memoryProfilerEnabled && memory)
         {
@@ -80,7 +93,7 @@ else
     
     ///
     pragma(inline, true)
-    void memRecordClear(MPRecord* rec)
+    void memRecordClear(MPRecord* rec) @nogc nothrow
     {
         rec.magic = 0x0;
         rec.name = [];
@@ -148,7 +161,7 @@ else
         MPRecord* current = profilerHead;
         while(current !is null)
         {
-            printFmtLn("Leak: {0} ({1}byte(s)) @ {2}:{3}",
+            printFmtLn("Leak: {0} ({1} byte(s)) @ {2}:{3}",
                 current.name,
                 current.size,
                 current.file,
@@ -169,8 +182,8 @@ else
         if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         void* memory = defaultAllocator.allocate(allocSize).ptr;
-        if (!memory)
-            onOutOfMemoryError();
+        if (memory is null)
+            outOfMemoryError(file, line);
         
         if (_memoryProfilerEnabled)
         {
@@ -197,6 +210,40 @@ else
         return instance;
     }
     
+    /// Allocates an structure.
+    T* allocate(T, A...)(A args, string file = __FILE__, int line = __LINE__)
+        if (is(T == struct))
+    {
+        enum objectSize = T.sizeof;
+        size_t allocSize = objectSize;
+        if (_memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        void* memory = defaultAllocator.allocate(allocSize).ptr;
+        if (memory is null)
+            outOfMemoryError(file, line);
+        
+        if (_memoryProfilerEnabled)
+        {
+            MPRecord* rec = cast(MPRecord*)memory;
+            *rec = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize, null, null);
+            
+            lockProfiler();
+            rec.next = profilerHead;
+            if (profilerHead)
+                profilerHead.prev = rec;
+            profilerHead = rec;
+            _allocatedMemory += objectSize;
+            _allocationCount++;
+            unlockProfiler();
+            
+            memory += MPRecordSize;
+        }
+        
+        T* instance = cast(T*)memory;
+        *instance = T(args);
+        return instance;
+    }
+    
     /// Allocates an array.
     T allocate(T)(size_t length, string file = __FILE__, int line = __LINE__)
         if (isArray!T)
@@ -207,8 +254,8 @@ else
         if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         void* memory = defaultAllocator.allocate(allocSize).ptr;
-        if (!memory)
-            onOutOfMemoryError();
+        if (memory is null)
+            outOfMemoryError(file, line);
         
         if (_memoryProfilerEnabled)
         {
@@ -234,7 +281,7 @@ else
     }
     
     /// Deallocates an object.
-    void deallocate(T)(ref T obj)
+    void deallocate(T)(ref T obj, string file = __FILE__, int line = __LINE__)
         if (is(T == class) || is(T == interface))
     {
         if (obj is null)
@@ -262,6 +309,8 @@ else
                 _allocationCount--;
                 unlockProfiler();
             }
+            else
+                doubleFreeError(file, line);
             memRecordClear(rec);
             memory -= MPRecordSize;
         }
@@ -270,8 +319,43 @@ else
         obj = null;
     }
     
+    /// Deallocates a structure.
+    void deallocate(T)(T* pstruct, string file = __FILE__, int line = __LINE__)
+        if (is(T == struct))
+    {
+        if (pstruct is null)
+            return;
+        
+        void* memory = cast(void*)pstruct;
+        enum objectSize = T.sizeof;
+        size_t allocSize = objectSize;
+        if (_memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        
+        if (_memoryProfilerEnabled)
+        {
+            MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            if (rec.magic == MP_RECORD_MAGIC)
+            {
+                lockProfiler();
+                if (rec.prev) rec.prev.next = rec.next;
+                if (rec.next) rec.next.prev = rec.prev;
+                if (profilerHead == rec) profilerHead = rec.next;
+                _allocatedMemory -= rec.size;
+                _allocationCount--;
+                unlockProfiler();
+            }
+            else
+                doubleFreeError(file, line);
+            memRecordClear(rec);
+            memory -= MPRecordSize;
+        }
+        
+        defaultAllocator.deallocate(memory[0..allocSize]);
+    }
+    
     /// Deallocates an array.
-    void deallocate(T)(ref T arr)
+    void deallocate(T)(ref T arr, string file = __FILE__, int line = __LINE__)
         if (isArray!T)
     {
         if (arr.ptr is null)
@@ -297,6 +381,8 @@ else
                 _allocationCount--;
                 unlockProfiler();
             }
+            else
+                doubleFreeError(file, line);
             memRecordClear(rec);
             memory -= MPRecordSize;
         }

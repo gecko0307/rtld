@@ -62,7 +62,7 @@ class Mallocator: Allocator
         void* p = malloc(size);
 
         if (!p)
-            onOutOfMemoryError();
+            outOfMemoryError();
 
         return p[0..size];
     }
@@ -125,7 +125,7 @@ class Mallocator: Allocator
         auto r = realloc(p.ptr, size);
 
         if (!r)
-            onOutOfMemoryError();
+            outOfMemoryError();
 
         p = r[0..size];
 

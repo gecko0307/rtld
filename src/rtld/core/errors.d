@@ -25,6 +25,10 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
+
+/**
+ * Runtime error messages. Used by object.d and core modules.
+ */
 module rtld.core.errors;
 
 import rtld.core.io;
@@ -38,7 +42,61 @@ void error(string msg) nothrow @nogc
 }
 
 pragma(inline, true)
-void onOutOfMemoryError() nothrow @nogc
+void switchError(string file, size_t line) nothrow @nogc
 {
-    error("Out of memory");
+    printFmtLn("{0}:{1}: no appropriate switch clause found", file, line);
+    exit(1);
+}
+
+pragma(inline, true)
+void assertionError(string file, size_t line) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: assertion failed", file, line);
+    exit(1);
+}
+
+pragma(inline, true)
+void arrayIndexError(string file, uint line, size_t index, size_t length) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}",
+        file, line, index, length);
+    exit(1);
+}
+
+pragma(inline, true) 
+void arrayBoundsSliceError(string file, size_t line, size_t lower, size_t upper, size_t length) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: array slice bounds out of range: [{2} .. {3}] exceeds length {4}", 
+        file, line, lower, upper, length);
+    exit(1);
+}
+
+pragma(inline, true)
+void outOfMemoryError() nothrow @nogc
+{
+    printStrLn("Out of memory");
+    exit(1);
+}
+
+pragma(inline, true)
+void outOfMemoryError(string file, size_t line) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: out of memory", file, line);
+    exit(1);
+}
+
+///
+pragma(inline, true)
+void doubleFreeError() nothrow @nogc
+{
+    printStrLn("Double free or memory corruption");
+    exit(1);
+}
+
+///
+pragma(inline, true)
+void doubleFreeError(string file, size_t line) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: double free or memory corruption", file, line);
+    exit(1);
 }

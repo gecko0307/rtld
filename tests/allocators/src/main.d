@@ -17,26 +17,43 @@ class Foo
     }
 }
 
+struct Bar
+{
+    int x;
+    int[10] arr;
+}
+
 int main()
 {
     memoryProfilerEnabled = true;
     
-    int[] arr = New!(int[])(10);
-    printFmtLn("arr = {0}", arr);
-    auto rec = memRecord(arr.ptr);
-    if (rec)
-        printFmtLn("{0}: {1} byte(s) @ {2}({3})", rec.name, rec.size, rec.file, rec.line);
+    int[] arr1 = New!(int[])(10);
+    printFmtLn("arr1 = {0}", arr1);
     
-    Foo foo = New!Foo(99);
-    printFmtLn("foo.x = {0}", foo.x);
-    rec = memRecord(cast(void*)foo);
+    Foo foo1 = New!Foo(99);
+    printFmtLn("foo1.x = {0}", foo1.x);
     
-    printMemoryLeaks();
+    Bar* bar = New!Bar(5);
+    printFmtLn("bar = {0}", *bar);
+    Delete(bar);
     
-    Delete(arr);
-    Delete(foo);
+    Arena arena = New!Arena(1024);
+    Foo foo2 = arena.create!Foo(99);
+    printFmtLn("foo2.x = {0}", foo2.x);
     
-    printMemoryLeaks();
+    int[] arr2 = arena.create!(int[])(20);
+    printFmtLn("arr = {0}", arr2);
+    
+    string s = arena.cat("Hello, ", "World!");
+    printStrLn(s);
+    
+    Delete(arena);
+    
+    //Delete(arr);
+    //Delete(foo);
+    
+    if (allocationCount > 0)
+        printMemoryLeaks();
     
     return 0;
 }

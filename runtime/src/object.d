@@ -252,6 +252,7 @@ class TypeInfo_u : TypeInfo { }
 class TypeInfo_f : TypeInfo { }
 class TypeInfo_k : TypeInfo { }
 class TypeInfo_t : TypeInfo { }
+class TypeInfo_h: TypeInfo { }
 
 class TypeInfo_Pointer : TypeInfo
 {
@@ -498,12 +499,12 @@ extern(C)
     
     void _d_assert(string file, uint line) @nogc nothrow
     {
-        exit(1);
+        assertionError(file, line);
     }
     
     void __switch_error()(string file = __FILE__, size_t line = __LINE__) @trusted
     {
-        assert(0, "No appropriate switch clause found");
+        switchError(file, line);
     }
     
     bool _d_enter_cleanup(void* exceptionObject) pure @nogc nothrow @trusted
@@ -572,16 +573,27 @@ extern(C)
         return ptr[0..toLength];
     }
     
-    void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow {}
-    
-    void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length)
+    void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow
     {
-        error("Array slice is out of bounds");
+        printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}", file, line, index, length);
+        exit(1);
+        arrayIndexError(file, line, index, length);
     }
     
-    void _d_arraybounds_slicep(immutable(char*) file, uint line, size_t lower, size_t upper, size_t length)
+    void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
     {
-        error("Array slice is out of bounds");
+        arrayBoundsSliceError(file, line, lower, upper, length);
+    }
+    
+    void _d_arraybounds_slicep(immutable(char*)file, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
+    {
+        import rtld.libc.string: strlen;
+        string fileStr;
+        if (file !is null)
+            fileStr = file[0..strlen(file)];
+        else
+            fileStr = "unknown";
+        arrayBoundsSliceError(fileStr, line, lower, upper, length);
     }
     
     void* _d_eh_personality = null;

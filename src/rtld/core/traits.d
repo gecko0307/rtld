@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.traits;
 
+///
 template Unqual(T)
 {
     static if (is(T U == const U) || is(T U == immutable U) ||
@@ -36,27 +37,55 @@ template Unqual(T)
         alias Unqual = T;
 }
 
-template isArray(T)
+///
+template isStaticArray(T)
 {
-    enum isArray = is(T == U[], U);
+    enum isStaticArray = is(T == U[N], U, size_t N);
 }
 
+///
+template isDynamicArray(T)
+{
+    enum isDynamicArray = is(T == U[], U);
+}
+
+///
+template isArray(T)
+{
+    enum isArray = isDynamicArray!T || isStaticArray!T;
+}
+
+///
 template ElementType(T)
 {
     static if (is(T == U[], U))
         alias ElementType = U;
 }
 
+///
 template isClass(T)
 {
     enum isClass = is(T == class);
 }
 
+///
+template hasConstructor(T)
+{
+    enum hasConstructor = __traits(hasMember, T, "__ctor");
+}
+
+///
+template hasDestructor(T)
+{
+    enum hasDestructor = __traits(hasMember, T, "__dtor");
+}
+
+///
 template isFinalizable(T)
 {
     enum isFinalizable =
         is(T == class) ||
         is(T == interface) ||
-        hasElaborateDestructor!T ||
+        hasDestructor!T ||
         isDynamicArray!T;
 }
