@@ -41,28 +41,15 @@ DEALINGS IN THE SOFTWARE.
 module rtld.math.base;
 
 version(FreeStanding)
-{
     version = UseFreeStandingMath;
-}
-
-version(UseFreeStandingMath)
-{
-    version(X86)
-    {
-        version = UseX87Math;
-    }
-    version(X86_64)
-    {
-        version = UseX87Math;
-    }
-}
-
-public import rtld.math.constants;
 
 version(LDC)
-{
     import ldc.intrinsics;
-}
+
+version(Phobos)
+    import std.math;
+else
+    public import rtld.math.constants;
 
 import rtld.math.fallback;
 
@@ -139,28 +126,55 @@ else version(LDC)
         return llvm_sin(x) / llvm_cos(x);
     }
     
-    alias abs   = absFallback;
-    alias fabs  = llvm_fabs;
-    alias sqrt  = llvm_sqrt;
-    alias sin   = llvm_sin;
-    alias cos   = llvm_cos;
-    alias tan   = llvm_tan;
-    alias ceil  = llvm_ceil;
-    alias floor = llvm_floor;
-    alias round = llvm_round;
-    alias trunc = llvm_trunc;
-    alias rint  = llvm_rint;
+    alias abs       = absFallback;
+    alias fabs      = llvm_fabs;
+    alias sqrt      = llvm_sqrt;
+    alias sin       = llvm_sin;
+    alias cos       = llvm_cos;
+    alias tan       = llvm_tan;
+    alias ceil      = llvm_ceil;
+    alias floor     = llvm_floor;
+    alias round     = llvm_round;
+    alias trunc     = llvm_trunc;
+    alias rint      = llvm_rint;
     alias nearbyint = llvm_nearbyint;
-    alias pow   = llvm_pow;
-    alias exp   = llvm_exp;
-    alias exp2  = llvm_exp2;
-    alias log   = llvm_log;
-    alias log2  = llvm_log2;
-    alias log10 = llvm_log10;
-    alias fmax  = llvm_maxnum;
-    alias fmin  = llvm_minnum;
-    alias fma   = llvm_fma;
-    alias copysign = llvm_copysign;
+    alias pow       = llvm_pow;
+    alias exp       = llvm_exp;
+    alias exp2      = llvm_exp2;
+    alias log       = llvm_log;
+    alias log2      = llvm_log2;
+    alias log10     = llvm_log10;
+    alias fmax      = llvm_maxnum;
+    alias fmin      = llvm_minnum;
+    alias fma       = llvm_fma;
+    alias copysign  = llvm_copysign;
+}
+else version(Phobos)
+{
+    // Use std.math functions
+    
+    alias abs = std.math.abs;
+    alias fabs = std.math.fabs;
+    alias sqrt = std.math.sqrt;
+    alias sin = std.math.sin;
+    alias cos = std.math.cos;
+    alias tan = std.math.tan;
+    alias ceil = std.math.ceil;
+    alias floor = std.math.floor;
+    alias round = std.math.round;
+    alias trunc = std.math.trunc;
+    alias rint = std.math.rint;
+    alias nearbyint = std.math.nearbyint;
+    alias pow = std.math.pow;
+    alias exp = std.math.exp;
+    alias exp2 = std.math.exp2;
+    alias log = std.math.log;
+    alias log2 = std.math.log2;
+    alias log10 = std.math.log10;
+    alias fmax = std.math.fmax;
+    alias fmin = std.math.fmin;
+    alias fma = std.math.fma;
+    alias copysign = std.math.copysign;
 }
 else
 {
@@ -212,9 +226,26 @@ version(UseFreeStandingMath)
     alias acosh = acoshFallback;
     alias atanh = atanhFallback;
 }
+version(Phobos)
+{
+    // Use std.math functions
+    
+    alias cbrt = std.math.cbrt;
+    alias asin = std.math.asin;
+    alias acos = std.math.acos;
+    alias atan = std.math.atan;
+    alias atan2 = std.math.atan2;
+    alias hypot = std.math.hypot;
+    alias sinh = std.math.sinh;
+    alias cosh = std.math.cosh;
+    alias tanh = std.math.tanh;
+    alias asinh = std.math.asinh;
+    alias acosh = std.math.acosh;
+    alias atanh = std.math.atanh;
+}
 else
 {
-    // Use libc
+    // Use libc functions
     
     extern(C) nothrow @nogc
     {
@@ -234,44 +265,50 @@ else
     }
 }
 
-/*
-  TODO:
-  - poly
-  - nextPow2
-  - truncPow2
-  - lround
-  - lrint
-  - rndtol
-  - quantize
-  - powmod
-  - expm1
-  - ldexp
-  - frexp
-  - logb
-  - ilogb
-  - log1p
-  - scalbn
-  - fmod
-  - remainder
-  - approxEqual
-  - feqrel
-  - fdim
-  - isClose
-  - nextDown
-  - nextUp
-  - nextafter
-  - NaN
-  - getNaNPayload
-  - cmp
-  - isFinite
-  - isIdentical
-  - isNormal
-  - isSubnormal
-  - signbit
-  - sgn
-  - isPowerOf2
-  - IeeeFlags
-  - ieeeFlags
-  - resetIeeeFlags
-  - FloatingPointControl
-*/
+version(Phobos)
+{
+    // Use std.math functions
+    
+    alias poly        = std.math.poly;
+    alias nextPow2    = std.math.nextPow2;
+    alias truncPow2   = std.math.truncPow2;
+    alias lround      = std.math.lround;
+    alias lrint       = std.math.lrint;
+    alias rndtol      = std.math.rndtol;
+    alias quantize    = std.math.quantize;
+    alias powmod      = std.math.powmod;
+    alias expm1       = std.math.expm1;
+    alias ldexp       = std.math.ldexp;
+    alias frexp       = std.math.frexp;
+    alias logb        = std.math.logb;
+    alias ilogb       = std.math.ilogb;
+    alias log1p       = std.math.log1p;
+    alias scalbn      = std.math.scalbn;
+    alias fmod        = std.math.fmod;
+    alias remainder   = std.math.remainder;
+    alias approxEqual = std.math.approxEqual;
+    alias feqrel      = std.math.feqrel;
+    alias fdim        = std.math.fdim;
+    alias isClose     = std.math.isClose;
+    alias nextDown    = std.math.nextDown;
+    alias nextUp      = std.math.nextUp;
+    alias nextafter   = std.math.nextafter;
+    alias NaN         = std.math.NaN;
+    alias getNaNPayload = std.math.getNaNPayload;
+    alias cmp         = std.math.cmp;
+    alias isFinite    = std.math.isFinite;
+    alias isIdentical = std.math.isIdentical;
+    alias isNormal    = std.math.isNormal;
+    alias isSubnormal = std.math.isSubnormal;
+    alias signbit     = std.math.signbit;
+    alias sgn         = std.math.sgn;
+    alias isPowerOf2  = std.math.isPowerOf2;
+    alias IeeeFlags   = std.math.IeeeFlags;
+    alias ieeeFlags   = std.math.ieeeFlags;
+    alias resetIeeeFlags = std.math.resetIeeeFlags;
+    alias FloatingPointControl = std.math.FloatingPointControl;
+}
+else
+{
+    // TODO: fallbacks
+}

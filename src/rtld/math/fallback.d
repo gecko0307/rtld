@@ -62,13 +62,9 @@ alias fminFallback = min2;
 version(FreeStanding):
 
 version(X86)
-{
     version = UseX87Math;
-}
 version(X86_64)
-{
     version = UseX87Math;
-}
 
 import rtld.math.trigtables;
 
