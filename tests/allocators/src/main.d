@@ -19,19 +19,24 @@ class Foo
 
 int main()
 {
+    memoryProfilerEnabled = true;
+    
     int[] arr = New!(int[])(10);
     printFmtLn("arr = {0}", arr);
     auto rec = memRecord(arr.ptr);
     if (rec)
         printFmtLn("{0}: {1} byte(s) @ {2}({3})", rec.name, rec.size, rec.file, rec.line);
-    Delete(arr);
     
     Foo foo = New!Foo(99);
     printFmtLn("foo.x = {0}", foo.x);
     rec = memRecord(cast(void*)foo);
-    if (rec)
-        printFmtLn("{0}: {1} byte(s) @ {2}({3})", rec.name, rec.size, rec.file, rec.line);
+    
+    printMemoryLeaks();
+    
+    Delete(arr);
     Delete(foo);
+    
+    printMemoryLeaks();
     
     return 0;
 }

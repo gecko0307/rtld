@@ -27,6 +27,8 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.core.memory;
 
+import rtld.core.atomic;
+import rtld.core.io;
 import rtld.core.traits;
 import rtld.core.errors;
 import rtld.libc.string;
@@ -41,6 +43,8 @@ struct MPRecord
     string file;
     ulong line;
     ulong size;
+    MPRecord* prev;
+    MPRecord* next;
 }
 
 version(WebAssembly)
@@ -53,24 +57,30 @@ else
 {
     enum MPRecordSize = MPRecord.sizeof;
     
-    __gshared bool memoryProfilerEnabled = true;
+    private __gshared
+    {
+        bool _memoryProfilerEnabled = true;
+        MPRecord* profilerHead = null;
+        shared(uint) profilerLock = 0;
+        ulong _allocatedMemory = 0;
+        ulong _allocationCount = 0;
+    }
     
     ///
+    pragma(inline, true)
     MPRecord* memRecord(void* memory)
     {
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled && memory)
         {
             MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
             if (rec.magic == MP_RECORD_MAGIC)
                 return rec;
-            else
-                return null;
         }
-        else
-            return null;
+        return null;
     }
     
     ///
+    pragma(inline, true)
     void memRecordClear(MPRecord* rec)
     {
         rec.magic = 0x0;
@@ -78,6 +88,85 @@ else
         rec.file = [];
         rec.line = 0x0;
         rec.size = 0x0;
+        rec.prev = null;
+        rec.next = null;
+    }
+    
+    ///
+    pragma(inline, true)
+    bool memoryProfilerEnabled() @nogc nothrow
+    {
+        // TODO: atomic access
+        return _memoryProfilerEnabled;
+    }
+    
+    ///
+    pragma(inline, true)
+    void memoryProfilerEnabled(bool mode) @nogc nothrow
+    {
+        // TODO: atomic access
+        _memoryProfilerEnabled = mode;
+    }
+    
+    pragma(inline, true)
+    private void lockProfiler() @nogc nothrow
+    {
+        while (!atomicCAS(&profilerLock, 0, 1))
+        {
+            version(LDC)
+            {
+                import ldc.llvmasm;
+                __asm!void("pause", "~{memory}");
+            }
+            else version(X86_64)
+            {
+                asm @nogc nothrow { db 0xF3, 0x90; }
+            }
+            else version(X86)
+            {
+                asm @nogc nothrow { db 0xF3, 0x90; }
+            }
+        }
+    }
+
+    pragma(inline, true)
+    private void unlockProfiler() @nogc nothrow
+    {
+        atomicStore(cast(shared(bool)*)&profilerLock, false);
+    }
+    
+    ///
+    void printMemoryLeaks() @nogc nothrow
+    {
+        if (!_memoryProfilerEnabled)
+            return;
+        
+        printLn("=== MEMORY LEAK REPORT ===");
+        
+        lockProfiler();
+        if (profilerHead is null)
+        {
+            printLn("No allocations.");
+            unlockProfiler();
+            printLn("==========================");
+            return;
+        }
+
+        printFmtLn("Active allocations: {0}, total bytes: {1}\n", _allocationCount, _allocatedMemory);
+
+        MPRecord* current = profilerHead;
+        while(current !is null)
+        {
+            printFmtLn("Leak: {0} ({1}byte(s)) @ {2}:{3}",
+                current.name,
+                current.size,
+                current.file,
+                current.line
+            );
+            current = current.next;
+        }
+        printLn("==========================");
+        unlockProfiler();
     }
     
     /// Allocates an object.
@@ -86,16 +175,26 @@ else
     {
         enum objectSize = __traits(classInstanceSize, T);
         size_t allocSize = objectSize;
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         void* memory = defaultAllocator.allocate(allocSize).ptr;
         if (!memory)
             onOutOfMemoryError();
         
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
         {
-            *cast(MPRecord*)memory = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize);
-            //_allocatedMemory += size; // TODO
+            MPRecord* rec = cast(MPRecord*)memory;
+            *rec = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize, null, null);
+            
+            lockProfiler();
+            rec.next = profilerHead;
+            if (profilerHead)
+                profilerHead.prev = rec;
+            profilerHead = rec;
+            _allocatedMemory += objectSize;
+            _allocationCount++;
+            unlockProfiler();
+            
             memory += MPRecordSize;
         }
         
@@ -114,16 +213,26 @@ else
         alias AT = ElementType!T;
         size_t objectSize = length * AT.sizeof;
         size_t allocSize = objectSize;
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         void* memory = defaultAllocator.allocate(allocSize).ptr;
         if (!memory)
             onOutOfMemoryError();
         
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
         {
-            *cast(MPRecord*)memory = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize);
-            //_allocatedMemory += size; // TODO
+            MPRecord* rec = cast(MPRecord*)memory;
+            *rec = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize, null, null);
+            
+            lockProfiler();
+            rec.next = profilerHead;
+            if (profilerHead)
+                profilerHead.prev = rec;
+            profilerHead = rec;
+            _allocatedMemory += objectSize;
+            _allocationCount++;
+            unlockProfiler();
+            
             memory += MPRecordSize;
         }
         
@@ -143,17 +252,26 @@ else
         void* memory = cast(void*)obj;
         enum objectSize = __traits(classInstanceSize, T);
         size_t allocSize = objectSize;
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         
         static if (__traits(hasMember, T, "__dtor"))
             obj.__dtor();
         
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
         {
             MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            if (rec.magic == MP_RECORD_MAGIC)
+            {
+                lockProfiler();
+                if (rec.prev) rec.prev.next = rec.next;
+                if (rec.next) rec.next.prev = rec.prev;
+                if (profilerHead == rec) profilerHead = rec.next;
+                _allocatedMemory -= rec.size;
+                _allocationCount--;
+                unlockProfiler();
+            }
             memRecordClear(rec);
-            //_allocatedMemory -= rec.size; // TODO
             memory -= MPRecordSize;
         }
         
@@ -171,15 +289,24 @@ else
         alias AT = ElementType!T;
         size_t objectSize = arr.length * AT.sizeof;
         size_t allocSize = objectSize;
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         
         void* memory = cast(void*)arr.ptr;
-        if (memoryProfilerEnabled)
+        if (_memoryProfilerEnabled)
         {
             MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            if (rec.magic == MP_RECORD_MAGIC)
+            {
+                lockProfiler();
+                if (rec.prev) rec.prev.next = rec.next;
+                if (rec.next) rec.next.prev = rec.prev;
+                if (profilerHead == rec) profilerHead = rec.next;
+                _allocatedMemory -= rec.size;
+                _allocationCount--;
+                unlockProfiler();
+            }
             memRecordClear(rec);
-            //_allocatedMemory -= rec.size; // TODO
             memory -= MPRecordSize;
         }
         

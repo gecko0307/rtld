@@ -31,6 +31,7 @@ import rtld;
 
 char[][] makeArgs(int argc, char** argv)
 {
+    memoryProfilerEnabled = false;
     auto args = New!(char[][])(argc);
 
     for (size_t i = 0; i < argc; i++)
@@ -52,6 +53,7 @@ extern(C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     rtldInit();
     char[][] args = makeArgs(argc, argv);
     int returnCode = mainFunc(args);
+    memoryProfilerEnabled = false;
     Delete(args);
     return returnCode;
 }
