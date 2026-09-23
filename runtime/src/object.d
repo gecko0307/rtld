@@ -365,6 +365,11 @@ class TypeInfo_Array: TypeInfo
     }
 
     TypeInfo value;
+    
+    override @property inout(TypeInfo) next() nothrow pure inout @nogc
+    {
+        return value;
+    }
 
     override @property uint flags() nothrow pure const { return 1; }
 
@@ -412,6 +417,7 @@ class TypeInfo_Af: TypeInfoArrayGeneric!float {}
 class TypeInfo_Ad: TypeInfoArrayGeneric!double {}
 class TypeInfo_Ae: TypeInfoArrayGeneric!real {}
 
+// Array of void
 class TypeInfo_Av: TypeInfo_Ah
 {
     override string toString() const { return "void[]"; }
@@ -428,7 +434,8 @@ class TypeInfo_Av: TypeInfo_Ah
     }
 }
 
-class TypeInfo_n : TypeInfo
+// Array of null
+class TypeInfo_n: TypeInfo
 {
     const: pure: @nogc: nothrow: @safe:
     override string toString() { return "typeof(null)"; }
@@ -501,7 +508,7 @@ class TypeInfo_Struct: TypeInfo
 
     override int compare(in void* p1, in void* p2) @trusted pure nothrow const
     {
-        import core.stdc.string : memcmp;
+        import core.stdc.string: memcmp;
 
         if (p1 != p2)
         {
@@ -608,7 +615,7 @@ class TypeInfo_Struct: TypeInfo
 
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return m_RTInfo; }
 
-    version (WithArgTypes)
+    version(WithArgTypes)
     {
         override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
         {
@@ -690,14 +697,13 @@ extern(C)
     
     void[] _d_newarrayU(const TypeInfo ti, size_t length)
     {
-        auto tiArray = cast(TypeInfo_Array)ti;
         auto elem_ti = ti.next;
         const size_t totalSize = length * elem_ti.tsize;
 
         if (totalSize == 0)
-            return [];
+            error("Failed to allocate an array literal");
 
-        void[] result = New(totalSize);
+        void[] result = New(totalSize, "object.d", __LINE__);
         result = result.ptr[0..length];
         return result;
     }
@@ -907,7 +913,7 @@ void* _d_arrayliteralTX(T)(size_t length)
     const size_t allocsize = length * T.sizeof;
     if (allocsize == 0)
         return null;
-    void[] buffer = New(allocsize);
+    void[] buffer = New(allocsize, "object.d", __LINE__);
     return buffer.ptr;
 }
 
