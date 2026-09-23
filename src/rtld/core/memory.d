@@ -67,7 +67,6 @@ else
     }
     
     ///
-    pragma(inline, true)
     MPRecord* memRecord(void* memory)
     {
         if (_memoryProfilerEnabled && memory)
@@ -108,7 +107,6 @@ else
         _memoryProfilerEnabled = mode;
     }
     
-    pragma(inline, true)
     private void lockProfiler() @nogc nothrow
     {
         while (!atomicCAS(&profilerLock, 0, 1))
@@ -129,7 +127,6 @@ else
         }
     }
 
-    pragma(inline, true)
     private void unlockProfiler() @nogc nothrow
     {
         atomicStore(cast(shared(bool)*)&profilerLock, false);

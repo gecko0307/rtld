@@ -50,7 +50,7 @@ else
     }
 
     /// Atomic Compare-And-Swap.
-    bool atomicCAS(shared(uint)* ptr, uint cmp, uint val) @nogc nothrow
+    bool atomicCAS(shared(uint)* p, uint cmp, uint val) @nogc nothrow
     {
         static if (UseInlineAsm)
         {
@@ -60,7 +60,7 @@ else
                 {
                     mov EAX, cmp;
                     mov EDX, val;
-                    mov RCX, ptr;
+                    mov RCX, p;
                     lock;
                     cmpxchg [RCX], EDX;
                     setz AL;
@@ -72,7 +72,7 @@ else
                 {
                     mov EAX, cmp;
                     mov EDX, val;
-                    mov ECX, ptr;
+                    mov ECX, p;
                     lock;
                     cmpxchg [ECX], EDX;
                     setz AL;
@@ -86,56 +86,60 @@ else
     }
     
     /// Atomic write.
-    void atomicStore(shared(bool)* ptr, bool val) @nogc nothrow
+    void atomicStore(shared(bool)* p, bool val) @nogc nothrow
     {
         static if (UseInlineAsm)
         {
             version(X86_64)
             {
-                asm @nogc nothrow {
+                asm @nogc nothrow
+                {
                     mov AL, val;
-                    mov RCX, ptr;
+                    mov RCX, p;
                     xchg [RCX], AL;
                 }
             }
             else version(X86)
             {
-                asm @nogc nothrow {
+                asm @nogc nothrow
+                {
                     mov AL, val;
-                    mov ECX, ptr;
+                    mov ECX, p;
                     xchg [ECX], AL;
                 }
             }
         }
         else
         {
-            *cast(bool*)ptr = val;
+            *cast(bool*)p = val;
         }
     }
     
     /// Atomic read.
-    bool atomicLoad(const shared(bool)* ptr) @nogc nothrow
+    bool atomicLoad(const shared(bool)* p) @nogc nothrow
     {
         static if (UseInlineAsm)
         {
             version(X86_64)
             {
-                asm @nogc nothrow {
-                    mov RCX, ptr;
+                asm @nogc nothrow
+                {
+                    mov RCX, p;
                     mov AL, [RCX];
                 }
             }
             else version(X86)
             {
-                asm @nogc nothrow {
-                    mov ECX, ptr;
+                asm @nogc nothrow
+                {
+                    mov ECX, p;
                     mov AL, [ECX];
                 }
             }
         }
         else
         {
-            return *cast(const(bool)*)ptr;
+            return *cast(const(bool)*)p;
         }
     }
 }
