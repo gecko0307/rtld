@@ -95,7 +95,6 @@ else
     pragma(inline, true)
     bool memoryProfilerEnabled() @nogc nothrow
     {
-        // TODO: atomic access
         return _memoryProfilerEnabled;
     }
     
@@ -103,7 +102,6 @@ else
     pragma(inline, true)
     void memoryProfilerEnabled(bool mode) @nogc nothrow
     {
-        // TODO: atomic access
         _memoryProfilerEnabled = mode;
     }
     
@@ -114,16 +112,12 @@ else
             version(LDC)
             {
                 import ldc.llvmasm;
-                __asm!void("pause", "~{memory}");
+                version(X86)          { __asm!void("pause", "~{memory}"); }
+                else version(X86_64)  { __asm!void("pause", "~{memory}"); }
+                else version(AArch64) { __asm!void("yield", "~{memory}"); }
             }
-            else version(X86_64)
-            {
-                asm @nogc nothrow { db 0xF3, 0x90; }
-            }
-            else version(X86)
-            {
-                asm @nogc nothrow { db 0xF3, 0x90; }
-            }
+            else version(X86_64) { asm @nogc nothrow { db 0xF3, 0x90; } }
+            else version(X86)    { asm @nogc nothrow { db 0xF3, 0x90; } }
         }
     }
 

@@ -501,6 +501,11 @@ extern(C)
         exit(1);
     }
     
+    void __switch_error()(string file = __FILE__, size_t line = __LINE__) @trusted
+    {
+        assert(0, "No appropriate switch clause found");
+    }
+    
     bool _d_enter_cleanup(void* exceptionObject) pure @nogc nothrow @trusted
     {
         return true;
@@ -568,6 +573,16 @@ extern(C)
     }
     
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow {}
+    
+    void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length)
+    {
+        error("Array slice is out of bounds");
+    }
+    
+    void _d_arraybounds_slicep(immutable(char*) file, uint line, size_t lower, size_t upper, size_t length)
+    {
+        error("Array slice is out of bounds");
+    }
     
     void* _d_eh_personality = null;
     

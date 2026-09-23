@@ -7,31 +7,85 @@ version(LDC)
     /// Atomic Compare-And-Swap.
     bool atomicCAS(shared(uint)* ptr, uint cmp, uint val) @nogc nothrow
     {
-        return __asm!bool(
-            "lock; cmpxchg $3, ($1); setz $0", 
-            "={ax},r,r,r,~{memory},~{cc}", 
-            ptr, cmp, val
-        );
+        version(X86_64)
+        {
+            return __asm!bool(
+                "lock; cmpxchg $3, ($1); setz $0", 
+                "={ax},r,r,r,~{memory},~{cc}", 
+                ptr, cmp, val
+            );
+        }
+        else version(X86)
+        {
+            return __asm!bool(
+                "lock; cmpxchg $3, ($1); setz $0", 
+                "={ax},r,r,r,~{memory},~{cc}", 
+                ptr, cmp, val
+            );
+        }
+        else version(AArch64)
+        {
+            return __asm!bool(
+                "1: ldaxr w4, [$1]\n" ~
+                "   cmp w4, ${2:w}\n" ~
+                "   b.ne 2f\n" ~
+                "   stlxr w5, ${3:w}, [$1]\n" ~
+                "   cbnz w5, 1b\n" ~
+                "   mov $0, #1\n" ~
+                "   b 3f\n" ~
+                "2: clrex\n" ~
+                "   mov $0, #0\n" ~
+                "3:",
+                "=r,r,r,r,~{x4},~{x5},~{memory},~{cc}",
+                ptr, cmp, val
+            );
+        }
+        else
+        {
+            return true;
+        }
     }
 
     /// Atomic write.
     void atomicStore(shared(bool)* ptr, bool val) @nogc nothrow
     {
-        __asm!void(
-            "xchg $1, ($0)", 
-            "r,r,~{memory}", 
-            ptr, val
-        );
+        version(X86_64)
+        {
+            __asm!void("xchg $1, ($0)", "r,r,~{memory}", ptr, val);
+        }
+        else version(X86)
+        {
+            __asm!void("xchg $1, ($0)", "r,r,~{memory}", ptr, val);
+        }
+        else version(AArch64)
+        {
+            __asm!void("stlrb ${1:w}, [$0]", "r,r,~{memory}", ptr, val);
+        }
+        else
+        {
+            *cast(bool*)p = val;
+        }
     }
 
     /// Atomic read.
     bool atomicLoad(const shared(bool)* ptr) @nogc nothrow
     {
-        return __asm!bool(
-            "movb ($1), $0", 
-            "=r,r,~{memory}", 
-            ptr
-        );
+        version(X86_64)
+        {
+            return __asm!bool("movb ($1), $0", "=r,r,~{memory}", ptr);
+        }
+        else version(X86)
+        {
+            return __asm!bool("movb ($1), $0", "=r,r,~{memory}", ptr);
+        }
+        else version(AArch64)
+        {
+            return __asm!bool("ldarb ${0:w}, [$1]", "=r,r,~{memory}", ptr);
+        }
+        else
+        {
+            return *cast(const(bool)*)p;
+        }
     }
 }
 else
