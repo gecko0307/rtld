@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2026 Timur Gafarov
+Copyright (c) 2016-2026 Eugene Wissner, Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -25,53 +25,37 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
+
+/**
+ * Allocators and memory management functions
+ *
+ * Copyright: Eugene Wissner, Timur Gafarov 2016-2026.
+ * License: $(LINK2 boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors: Eugene Wissner, Timur Gafarov
+ */
+module rtld.memory;
 
 public
 {
-    import rtld.core;
-    import rtld.container;
-    import rtld.gl;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.memory;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
+    import rtld.memory.allocator;
+    //import rtld.memory.gcallocator;
+    import rtld.memory.mallocator;
+    //import rtld.memory.mmappool;
+    //import rtld.memory.arena;
 }
 
-void rtldInit() nothrow @nogc
+private __gshared Allocator allocator;
+
+/// Get default allocator (Mallocator).
+@property Allocator defaultAllocator()
 {
-    version(FreeStanding)
-    {
-    }
-    else
-    {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-    
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
+    if (allocator is null)
+        allocator = Mallocator.instance;
+    return allocator;
 }
 
-version(Phobos)
+/// Set default allocator.
+@property void defaultAllocator(Allocator newDefaultAllocator)
 {
-    static this()
-    {
-        rtldInit();
-    }
+    allocator = newDefaultAllocator;
 }

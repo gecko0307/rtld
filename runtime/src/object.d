@@ -27,8 +27,10 @@ DEALINGS IN THE SOFTWARE.
 */
 module object;
 
+import rtld.core.io;
 import rtld.core.traits;
 import rtld.core.process;
+import rtld.core.errors;
 import rtld.hash.xxhash64;
 
 version(GNU)
@@ -498,6 +500,15 @@ extern(C)
     {
         exit(1);
     }
+    
+    bool _d_enter_cleanup(void* exceptionObject) pure @nogc nothrow @trusted
+    {
+        return true;
+    }
+    
+    void _d_leave_cleanup(void* cleanupContext) pure @nogc nothrow @trusted
+    {
+    }
 
     void _d_callinterfacector(void* p) @nogc nothrow {}
     void _d_callinterfacedtor(void* p) @nogc nothrow {}
@@ -538,6 +549,22 @@ extern(C)
         }
         
         return null;
+    }
+    
+    TTo[] __ArrayCast(TFrom, TTo)(return scope TFrom[] from) nothrow @nogc @trusted
+    {
+        if (from.length == 0)
+            return null;
+
+        size_t fromSize = from.length * TFrom.sizeof;
+
+        if (fromSize % TTo.sizeof != 0)
+            error("Array cast size mismatch: total bytes do not divide evenly by target type size");
+
+        size_t toLength = fromSize / TTo.sizeof;
+
+        auto ptr = cast(TTo*)from.ptr;
+        return ptr[0..toLength];
     }
     
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow {}

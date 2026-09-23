@@ -51,3 +51,12 @@ template isClass(T)
 {
     enum isClass = is(T == class);
 }
+
+template isFinalizable(T)
+{
+    enum isFinalizable =
+        is(T == class) ||
+        is(T == interface) ||
+        hasElaborateDestructor!T ||
+        isDynamicArray!T;
+}

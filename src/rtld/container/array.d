@@ -69,7 +69,7 @@ struct Array(T, size_t chunkSize = 32)
             return dynamicStorage.ptr;
     }
     
-    private void addChunk() nothrow @nogc
+    private void addChunk()
     {
         if (numChunks == 0)
         {
@@ -107,7 +107,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Preallocate memory without resizing.
      */
-    void reserve(const(size_t) amount) nothrow @nogc
+    void reserve(const(size_t) amount)
     {
         if (amount > pos && amount > staticStorage.length)
         {
@@ -138,7 +138,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Resize array and initialize newly added elements with initValue.
      */
-    void resize(const(size_t) newLen, T initValue) nothrow @nogc
+    void resize(const(size_t) newLen, T initValue)
     {
         if (newLen > pos)
         {
@@ -166,7 +166,7 @@ struct Array(T, size_t chunkSize = 32)
      * It inreases the size of array by 1.
      * The first element becomes default initialized.
      */
-    void shiftRight() nothrow @nogc
+    void shiftRight()
     {
         insertBack(T.init);
 
@@ -202,7 +202,7 @@ struct Array(T, size_t chunkSize = 32)
      * Does not change the size of array.
      * n of last elements becomes default initialized.
      */
-    void shiftLeft(const(uint) n) nothrow @nogc
+    void shiftLeft(const(uint) n)
     {
         for(uint i = 0; i < pos; i++)
         {
@@ -236,7 +236,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Append single element c to the end.
      */
-    void insertBack(T c) nothrow @nogc
+    void insertBack(T c)
     {
         if (numChunks == 0)
         {
@@ -277,7 +277,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Append element to the start.
      */
-    void insertFront(T c) nothrow @nogc
+    void insertFront(T c)
     {
         shiftRight();
         storage[0] = c;
@@ -298,7 +298,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Append all elements of slice s to the end.
      */
-    void insertBack(const(T)[] s) nothrow @nogc
+    void insertBack(const(T)[] s)
     {
         foreach(c; s)
             insertBack(cast(T)c);
@@ -319,7 +319,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Append all elements of slice s to the start.
      */
-    void insertFront(const(T)[] s) nothrow @nogc
+    void insertFront(const(T)[] s)
     {
         foreach_reverse(c; s)
             insertFront(cast(T)c);
@@ -340,7 +340,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Same as insertBack, but in operator form.
      */
-    auto opOpAssign(string op)(T c) nothrow @nogc if (op == "~")
+    auto opOpAssign(string op)(T c) if (op == "~")
     {
         insertBack(c);
         return this;
@@ -360,7 +360,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Same as insertBack, but in operator form.
      */
-    auto opOpAssign(string op)(const(T)[] s) nothrow @nogc if (op == "~")
+    auto opOpAssign(string op)(const(T)[] s) if (op == "~")
     {
         insertBack(s);
         return this;
@@ -380,7 +380,7 @@ struct Array(T, size_t chunkSize = 32)
      * Remove n of elements from the end.
      * Returns: number of removed elements.
      */
-    uint removeBack(const(uint) n) nothrow @nogc
+    uint removeBack(const(uint) n)
     {
         if (pos == n)
         {
@@ -422,7 +422,7 @@ struct Array(T, size_t chunkSize = 32)
      * Remove n of elements from the start.
      * Returns: number of removed elements.
      */
-    uint removeFront(const(uint) n) nothrow @nogc
+    uint removeFront(const(uint) n)
     {
         if (pos == n)
         {
@@ -464,7 +464,7 @@ struct Array(T, size_t chunkSize = 32)
      * Inserts an element by a given index
      * (resizing an array and shifting elements).
      */
-    void insertKey(const(size_t) i, T v) nothrow @nogc
+    void insertKey(const(size_t) i, T v)
     {
         if (i < pos)
         {
@@ -496,7 +496,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Removes an element by a given index.
      */
-    void removeKey(const(size_t) i) nothrow @nogc
+    void removeKey(const(size_t) i)
     {
         if (i < pos)
         {
@@ -529,7 +529,7 @@ struct Array(T, size_t chunkSize = 32)
      * If obj is in array, remove its first occurence and return true.
      * Otherwise do nothing and return false.
      */
-    bool removeFirst(T obj) nothrow @nogc
+    bool removeFirst(T obj)
     {
         size_t index;
         bool found = false;
@@ -746,7 +746,7 @@ struct Array(T, size_t chunkSize = 32)
     /**
      * Free dynamically allocated memory used by array.
      */
-    void free() nothrow @nogc
+    void free()
     {
         if (dynamicStorage.length)
             Delete(dynamicStorage);
@@ -755,7 +755,7 @@ struct Array(T, size_t chunkSize = 32)
     }
 }
 
-void reallocateArray(T)(ref T[] buffer, const(size_t) len) nothrow @nogc
+void reallocateArray(T)(ref T[] buffer, const(size_t) len)
 {
     T[] buffer2 = New!(T[])(len);
     for(uint i = 0; i < buffer2.length; i++)

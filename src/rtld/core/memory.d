@@ -28,8 +28,20 @@ DEALINGS IN THE SOFTWARE.
 module rtld.core.memory;
 
 import rtld.core.traits;
-import rtld.libc.stdlib;
+import rtld.core.errors;
 import rtld.libc.string;
+import rtld.memory;
+
+enum ulong MP_RECORD_MAGIC = 0xBADBEEF;
+
+struct MPRecord
+{
+    ulong magic;
+    string name;
+    string file;
+    ulong line;
+    ulong size;
+}
 
 version(WebAssembly)
 {
@@ -39,59 +51,142 @@ else version(FreeStanding)
 }
 else
 {
-    T New(T, Args...)(Args args)
+    enum MPRecordSize = MPRecord.sizeof;
+    
+    __gshared bool memoryProfilerEnabled = true;
+    
+    ///
+    MPRecord* memRecord(void* memory)
+    {
+        if (memoryProfilerEnabled)
+        {
+            MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            if (rec.magic == MP_RECORD_MAGIC)
+                return rec;
+            else
+                return null;
+        }
+        else
+            return null;
+    }
+    
+    ///
+    void memRecordClear(MPRecord* rec)
+    {
+        rec.magic = 0x0;
+        rec.name = [];
+        rec.file = [];
+        rec.line = 0x0;
+        rec.size = 0x0;
+    }
+    
+    /// Allocates an object.
+    T allocate(T, A...)(A args, string file = __FILE__, int line = __LINE__)
         if (is(T == class))
     {
-        enum size = __traits(classInstanceSize, T);
-        void* memory = malloc(size);
-        if (memory is null)
-            return null;
+        enum objectSize = __traits(classInstanceSize, T);
+        size_t allocSize = objectSize;
+        if (memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        void* memory = defaultAllocator.allocate(allocSize).ptr;
+        if (!memory)
+            onOutOfMemoryError();
+        
+        if (memoryProfilerEnabled)
+        {
+            *cast(MPRecord*)memory = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize);
+            //_allocatedMemory += size; // TODO
+            memory += MPRecordSize;
+        }
+        
         const(void)[] initSymbol = __traits(initSymbol, T);
-        memcpy(memory, initSymbol.ptr, size);
+        memcpy(memory, initSymbol.ptr, objectSize);
         auto instance = cast(T)memory;
         static if (__traits(hasMember, T, "__ctor"))
-        {
             instance.__ctor(args);
-        }
         return instance;
     }
-
-    T New(T)(size_t length) @nogc nothrow
+    
+    /// Allocates an array.
+    T allocate(T)(size_t length, string file = __FILE__, int line = __LINE__)
         if (isArray!T)
     {
         alias AT = ElementType!T;
-        if (length == 0)
-            return T.init;
-        if (length > size_t.max / AT.sizeof)
-            return T.init;
-        size_t size = length * AT.sizeof;
-        void* memory = malloc(size);
-        if (memory is null)
-            return T.init;
-        auto arr = (cast(AT*)memory)[0..length];
-        arr[] = AT.init;
+        size_t objectSize = length * AT.sizeof;
+        size_t allocSize = objectSize;
+        if (memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        void* memory = defaultAllocator.allocate(allocSize).ptr;
+        if (!memory)
+            onOutOfMemoryError();
+        
+        if (memoryProfilerEnabled)
+        {
+            *cast(MPRecord*)memory = MPRecord(MP_RECORD_MAGIC, T.stringof, file, line, objectSize);
+            //_allocatedMemory += size; // TODO
+            memory += MPRecordSize;
+        }
+        
+        T arr = cast(T)memory[0..objectSize];
+        foreach(ref v; arr)
+            v = v.init;
         return arr;
     }
-
-    void Delete(T)(ref T instance)
+    
+    /// Deallocates an object.
+    void deallocate(T)(ref T obj)
         if (is(T == class) || is(T == interface))
     {
-        if (instance is null) return;
-        void* memory = cast(void*)instance;
+        if (obj is null)
+            return;
+        
+        void* memory = cast(void*)obj;
+        enum objectSize = __traits(classInstanceSize, T);
+        size_t allocSize = objectSize;
+        if (memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        
         static if (__traits(hasMember, T, "__dtor"))
+            obj.__dtor();
+        
+        if (memoryProfilerEnabled)
         {
-            instance.__dtor();
+            MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            memRecordClear(rec);
+            //_allocatedMemory -= rec.size; // TODO
+            memory -= MPRecordSize;
         }
-        free(memory);
-        instance = null;
+        
+        defaultAllocator.deallocate(memory[0..allocSize]);
+        obj = null;
     }
     
-    void Delete(T)(ref T arr) @nogc nothrow
+    /// Deallocates an array.
+    void deallocate(T)(ref T arr)
         if (isArray!T)
     {
+        if (arr.ptr is null)
+            return;
+        
+        alias AT = ElementType!T;
+        size_t objectSize = arr.length * AT.sizeof;
+        size_t allocSize = objectSize;
+        if (memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        
         void* memory = cast(void*)arr.ptr;
-        if (memory !is null)
-            free(memory);
-        arr = T.init;
+        if (memoryProfilerEnabled)
+        {
+            MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            memRecordClear(rec);
+            //_allocatedMemory -= rec.size; // TODO
+            memory -= MPRecordSize;
+        }
+        
+        defaultAllocator.deallocate(memory[0..allocSize]);
+        arr = [];
     }
+    
+    alias New = allocate;
+    alias Delete = deallocate;
 }

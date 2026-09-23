@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2026 Timur Gafarov
+Copyright (c) 2016-2026 Eugene Wissner
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -25,53 +25,54 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
 
-public
-{
-    import rtld.core;
-    import rtld.container;
-    import rtld.gl;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.memory;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
-}
+/**
+ * Abstract allocator interface
+ *
+ * Copyright: Eugene Wissner 2016-2026.
+ * License: $(LINK2 boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors: Eugene Wissner
+ */
+module rtld.memory.allocator;
 
-void rtldInit() nothrow @nogc
+/**
+ * Allocator interface.
+ */
+interface Allocator
 {
-    version(FreeStanding)
-    {
-    }
-    else
-    {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-    
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
-}
+    /**
+     * Allocates $(D_PARAM size) bytes of memory.
+     *
+     * Params:
+     *     size = Amount of memory to allocate.
+     *
+     * Returns: The pointer to the new allocated memory.
+     */
+    void[] allocate(size_t size);
 
-version(Phobos)
-{
-    static this()
-    {
-        rtldInit();
-    }
+    /**
+     * Deallocates a memory block.
+     *
+     * Params:
+     *     p = A pointer to the memory block to be freed.
+     *
+     * Returns: Whether the deallocation was successful.
+     */
+    bool deallocate(void[] p);
+
+    /**
+     * Increases or decreases the size of a memory block.
+     *
+     * Params:
+     *     p    = A pointer to the memory block.
+     *     size = Size of the reallocated block.
+     *
+     * Returns: Whether the reallocation was successful.
+     */
+    bool reallocate(ref void[] p, size_t size);
+
+    /**
+     * Returns: The alignment offered.
+     */
+    @property immutable(uint) alignment() const @safe pure nothrow;
 }

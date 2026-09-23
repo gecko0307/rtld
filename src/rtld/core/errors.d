@@ -25,53 +25,20 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
+module rtld.core.errors;
 
-public
+import rtld.core.io;
+import rtld.core.process;
+
+pragma(inline, true)
+void error(string msg) nothrow @nogc
 {
-    import rtld.core;
-    import rtld.container;
-    import rtld.gl;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.memory;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
+    printStrLn(msg);
+    exit(1);
 }
 
-void rtldInit() nothrow @nogc
+pragma(inline, true)
+void onOutOfMemoryError() nothrow @nogc
 {
-    version(FreeStanding)
-    {
-    }
-    else
-    {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-    
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
-}
-
-version(Phobos)
-{
-    static this()
-    {
-        rtldInit();
-    }
+    error("Out of memory");
 }
