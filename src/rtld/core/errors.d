@@ -55,6 +55,12 @@ void assertionError(string file, size_t line) nothrow @nogc
     exit(1);
 }
 
+void assertionErrorMsg(string file, size_t line, string msg) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: assertion failed: {2}", file, line, msg);
+    exit(1);
+}
+
 pragma(inline, true)
 void arrayIndexError(string file, uint line, size_t index, size_t length) nothrow @nogc
 {

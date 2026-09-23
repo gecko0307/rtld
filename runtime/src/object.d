@@ -497,9 +497,29 @@ extern(C)
     bool _xopEquals(const(void)* p1, const(void)* p2) @nogc nothrow { return p1 == p2; }
     int _xopCmp(const(void)* p1, const(void)* p2) @nogc nothrow { return 0; }
     
+    int _adEq2(void[] a1, void[] a2, TypeInfo ti)
+    {
+        if (a1.length != a2.length)
+            return 0;
+
+        import rtld.libc.string: memcmp;
+        return memcmp(a1.ptr, a2.ptr, a1.length * ti.tsize()) == 0;
+    }
+    
     void _d_assert(string file, uint line) @nogc nothrow
     {
         assertionError(file, line);
+    }
+    
+    void _d_assertp(immutable(char)* file, uint line) @nogc nothrow
+    {
+        import rtld.libc.string: strlen;
+        assertionError(file[0..strlen(file)], line);
+    }
+
+    void _d_assert_msg(string msg, string file, uint line) @nogc nothrow
+    {
+        assertionErrorMsg(file, line, msg);
     }
     
     void __switch_error()(string file = __FILE__, size_t line = __LINE__) @trusted
@@ -572,12 +592,33 @@ extern(C)
         auto ptr = cast(TTo*)from.ptr;
         return ptr[0..toLength];
     }
-    
+
+    void _d_arraybounds(string file, uint line) @nogc nothrow
+    {
+        // TODO
+    }
+
+    void _d_arrayboundsp(immutable(char*) file, uint line) @nogc nothrow
+    {
+        // TODO
+    }
+
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow
     {
         printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}", file, line, index, length);
         exit(1);
         arrayIndexError(file, line, index, length);
+    }
+    
+    void _d_arraybounds_indexp(immutable(char*) file, uint line, size_t index, size_t length) @nogc nothrow
+    {
+        import rtld.libc.string : strlen;
+        string fileStr;
+        if (file !is null)
+            fileStr = file[0..strlen(file)];
+        else
+            fileStr = "unknown";
+        arrayIndexError(fileStr, line, index, length);
     }
     
     void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
