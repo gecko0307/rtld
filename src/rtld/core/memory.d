@@ -46,6 +46,7 @@ struct MPRecord
     ulong size;
     MPRecord* prev;
     MPRecord* next;
+    ulong _padding;
 }
 
 version(WebAssembly)
@@ -171,6 +172,36 @@ else
         }
         printLn("==========================");
         unlockProfiler();
+    }
+    
+    /// Allocates an untyped buffer.
+    void[] allocate(size_t len, string file = __FILE__, int line = __LINE__)
+    {
+        size_t allocSize = len;
+        if (_memoryProfilerEnabled)
+            allocSize += MPRecordSize;
+        void* memory = defaultAllocator.allocate(allocSize).ptr;
+        if (memory is null)
+            outOfMemoryError(file, line);
+        
+        if (_memoryProfilerEnabled)
+        {
+            MPRecord* rec = cast(MPRecord*)memory;
+            *rec = MPRecord(MP_RECORD_MAGIC, "void[]", file, line, len, null, null);
+            
+            lockProfiler();
+            rec.next = profilerHead;
+            if (profilerHead)
+                profilerHead.prev = rec;
+            profilerHead = rec;
+            _allocatedMemory += len;
+            _allocationCount++;
+            unlockProfiler();
+            
+            memory += MPRecordSize;
+        }
+        
+        return memory[0..len];
     }
     
     /// Allocates an object.

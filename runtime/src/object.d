@@ -31,6 +31,7 @@ import rtld.core.io;
 import rtld.core.traits;
 import rtld.core.process;
 import rtld.core.errors;
+import rtld.core.memory;
 import rtld.hash.xxhash64;
 
 version(GNU)
@@ -61,6 +62,19 @@ alias noreturn = typeof(*null);
 enum immutable(void)* rtinfoNoPointers  = null;
 enum immutable(void)* rtinfoHasPointers = cast(void*)1;
 
+struct Interface
+{
+    TypeInfo_Class classinfo;
+    void*[] vtbl;
+    size_t offset;
+}
+
+struct OffsetTypeInfo
+{
+    size_t offset;
+    TypeInfo ti;
+}
+
 class Object
 {
     string toString()
@@ -82,12 +96,6 @@ class Object
     {
         return this is o;
     }
-}
-
-struct OffsetTypeInfo
-{
-    size_t offset;
-    TypeInfo ti;
 }
 
 class TypeInfo
@@ -196,13 +204,6 @@ class TypeInfo_Invariant : TypeInfo_Const {}   // immutable(T)
 class TypeInfo_Shared    : TypeInfo_Const {}   // shared(T)
 class TypeInfo_Inout     : TypeInfo_Const {}   // inout(T)
 
-struct Interface
-{
-    TypeInfo_Class classinfo;
-    void*[] vtbl;
-    size_t offset;
-}
-
 class TypeInfo_Class: TypeInfo
 {
     byte[] m_init;
@@ -242,32 +243,213 @@ class TypeInfo_Interface : TypeInfo
 
 alias ClassInfo = TypeInfo_Class;
 
-class TypeInfo_i : TypeInfo { }
-class TypeInfo_l : TypeInfo { }
-class TypeInfo_m : TypeInfo { }
-class TypeInfo_v : TypeInfo { }
-class TypeInfo_w : TypeInfo { }
-class TypeInfo_Aya : TypeInfo { }
-class TypeInfo_u : TypeInfo { }
-class TypeInfo_f : TypeInfo { }
-class TypeInfo_k : TypeInfo { }
-class TypeInfo_t : TypeInfo { }
-class TypeInfo_h: TypeInfo { }
+class TypeInfoGeneric(T, Base = T): TypeInfo
+{
+    override @property size_t tsize() nothrow pure const @safe @nogc
+    {
+        return T.sizeof;
+    }
+    
+    override @property inout(TypeInfo) next() nothrow pure inout @nogc
+    {
+        return cast(inout)typeid(T);
+    }
+}
 
-class TypeInfo_Pointer : TypeInfo
+class TypeInfo_v : TypeInfoGeneric!ubyte
+{
+    const nothrow pure @trusted:
+
+    override string toString() const @safe { return "void"; }
+
+    override size_t getHash(scope const void* p)
+    {
+        return 0;
+    }
+
+    override @property uint flags()
+    {
+        return 1;
+    }
+}
+class TypeInfo_h : TypeInfoGeneric!ubyte {}
+class TypeInfo_b: TypeInfoGeneric!(bool, ubyte) {}
+class TypeInfo_g: TypeInfoGeneric!(byte, ubyte) {}
+class TypeInfo_a: TypeInfoGeneric!(char, ubyte) {}
+class TypeInfo_t: TypeInfoGeneric!ushort {}
+class TypeInfo_s: TypeInfoGeneric!(short, ushort) {}
+class TypeInfo_u: TypeInfoGeneric!(wchar, ushort) {}
+class TypeInfo_w: TypeInfoGeneric!(dchar, uint) {}
+class TypeInfo_k: TypeInfoGeneric!uint {}
+class TypeInfo_i: TypeInfoGeneric!(int, uint) {}
+class TypeInfo_m: TypeInfoGeneric!ulong {}
+class TypeInfo_l: TypeInfoGeneric!(long, ulong) {}
+static if (is(cent)) class TypeInfo_zi: TypeInfoGeneric!cent {}
+static if (is(ucent)) class TypeInfo_zk: TypeInfoGeneric!ucent {}
+class TypeInfo_f: TypeInfoGeneric!float {}
+class TypeInfo_d: TypeInfoGeneric!double {}
+class TypeInfo_e: TypeInfoGeneric!real {}
+
+class TypeInfo_Array: TypeInfo
+{
+    override string toString() const { return "[]"; }
+
+    /*
+    // TODO
+    override bool opEquals(Object o)
+    {
+        if (this is o)
+            return true;
+        auto c = cast(const TypeInfo_Array)o;
+        return c && this.value == c.value;
+    }
+    */
+    
+    /*
+    // TODO
+    override size_t getHash(scope const void* p) @trusted const
+    {
+        void[] a = *cast(void[]*)p;
+        return getArrayHash(value, a.ptr, a.length);
+    }
+    */
+
+    override bool equals(in void* p1, in void* p2) const
+    {
+        void[] a1 = *cast(void[]*)p1;
+        void[] a2 = *cast(void[]*)p2;
+        if (a1.length != a2.length)
+            return false;
+        size_t sz = value.tsize;
+        for (size_t i = 0; i < a1.length; i++)
+        {
+            if (!value.equals(a1.ptr + i * sz, a2.ptr + i * sz))
+                return false;
+        }
+        return true;
+    }
+
+    override int compare(in void* p1, in void* p2) const
+    {
+        void[] a1 = *cast(void[]*)p1;
+        void[] a2 = *cast(void[]*)p2;
+        size_t sz = value.tsize;
+        size_t len = a1.length;
+
+        if (a2.length < len)
+            len = a2.length;
+        for (size_t u = 0; u < len; u++)
+        {
+            immutable int result = value.compare(a1.ptr + u * sz, a2.ptr + u * sz);
+            if (result)
+                return result;
+        }
+        return (a1.length > a2.length) - (a1.length < a2.length);
+    }
+
+    override @property size_t tsize() nothrow pure const
+    {
+        return (void[]).sizeof;
+    }
+
+    override const(void)[] initializer() const @trusted
+    {
+        return (cast(void *)null)[0 .. (void[]).sizeof];
+    }
+
+    override void swap(void* p1, void* p2) const
+    {
+        void[] tmp = *cast(void[]*)p1;
+        *cast(void[]*)p1 = *cast(void[]*)p2;
+        *cast(void[]*)p2 = tmp;
+    }
+
+    TypeInfo value;
+
+    override @property uint flags() nothrow pure const { return 1; }
+
+    override @property size_t talign() nothrow pure const
+    {
+        return (void[]).alignof;
+    }
+
+    version(WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {
+        arg1 = typeid(size_t);
+        arg2 = typeid(void*);
+        return 0;
+    }
+
+    //override @property immutable(void)* rtInfo() nothrow pure const @safe { return RTInfo!(void[]); }
+}
+
+class TypeInfoArrayGeneric(T, Base = T): TypeInfo_Array
+{
+    override @property inout(TypeInfo) next() nothrow pure inout @nogc
+    {
+        return cast(inout)typeid(T);
+    }
+}
+
+class TypeInfo_Ah: TypeInfoArrayGeneric!ubyte {}
+class TypeInfo_Ab: TypeInfoArrayGeneric!(bool, ubyte) {}
+class TypeInfo_Ag: TypeInfoArrayGeneric!(byte, ubyte) {}
+class TypeInfo_Aa: TypeInfoArrayGeneric!(char, ubyte) {}
+class TypeInfo_Axa: TypeInfoArrayGeneric!(const char) {}
+class TypeInfo_Aya: TypeInfoArrayGeneric!(immutable char)
+{
+    override string toString() const { return "immutable(char)[]"; }
+}
+class TypeInfo_At: TypeInfoArrayGeneric!ushort {}
+class TypeInfo_As: TypeInfoArrayGeneric!(short, ushort) {}
+class TypeInfo_Au: TypeInfoArrayGeneric!(wchar, ushort) {}
+class TypeInfo_Ak: TypeInfoArrayGeneric!uint {}
+class TypeInfo_Ai: TypeInfoArrayGeneric!(int, uint) {}
+class TypeInfo_Aw: TypeInfoArrayGeneric!(dchar, uint) {}
+class TypeInfo_Am: TypeInfoArrayGeneric!ulong {}
+class TypeInfo_Al: TypeInfoArrayGeneric!(long, ulong) {}
+class TypeInfo_Af: TypeInfoArrayGeneric!float {}
+class TypeInfo_Ad: TypeInfoArrayGeneric!double {}
+class TypeInfo_Ae: TypeInfoArrayGeneric!real {}
+
+class TypeInfo_Av: TypeInfo_Ah
+{
+    override string toString() const { return "void[]"; }
+
+    override @property inout(TypeInfo) next() inout
+    {
+        return cast(inout) typeid(void);
+    }
+
+    unittest
+    {
+        assert(typeid(void[]).toString == "void[]");
+        assert(typeid(void[]).next == typeid(void));
+    }
+}
+
+class TypeInfo_n : TypeInfo
+{
+    const: pure: @nogc: nothrow: @safe:
+    override string toString() { return "typeof(null)"; }
+    override size_t getHash(scope const void*) { return 0; }
+    override bool equals(in void*, in void*) { return true; }
+    override int compare(in void*, in void*) { return 0; }
+    override @property size_t tsize() { return typeof(null).sizeof; }
+    override const(void)[] initializer() @trusted { return (cast(void*)null)[0..size_t.sizeof]; }
+    override void swap(void*, void*) {}
+    override @property immutable(void)* rtInfo() { return rtinfoNoPointers; }
+}
+
+class TypeInfo_Pointer: TypeInfo
 {
     TypeInfo m_next;
 }
 
-class TypeInfo_Array : TypeInfo
+class TypeInfo_StaticArray: TypeInfo
 {
     TypeInfo value;
-}
-
-class TypeInfo_StaticArray : TypeInfo
-{
-    TypeInfo value;
-    size_t   len;
+    size_t len;
 }
 
 class TypeInfo_Struct: TypeInfo
@@ -296,7 +478,7 @@ class TypeInfo_Struct: TypeInfo
         }
         else
         {
-            return xxHash64(p[0 .. initializer().length], 0);
+            return xxHash64(p[0..initializer().length], 0);
         }
     }
 
@@ -457,37 +639,37 @@ class TypeInfo_Struct: TypeInfo
     }
 }
 
-class TypeInfo_AssociativeArray : TypeInfo
+class TypeInfo_AssociativeArray: TypeInfo
 {
     TypeInfo value;
     TypeInfo key;
 }
 
-class TypeInfo_Vector : TypeInfo
+class TypeInfo_Vector: TypeInfo
 {
     TypeInfo base;
 }
 
-class TypeInfo_Function : TypeInfo
+class TypeInfo_Function: TypeInfo
 {
     TypeInfo next;
-    string   deco;
+    string deco;
 }
 
-class TypeInfo_Delegate : TypeInfo
+class TypeInfo_Delegate: TypeInfo
 {
     TypeInfo next;
-    string   deco;
+    string deco;
 }
 
-class TypeInfo_Enum : TypeInfo
+class TypeInfo_Enum: TypeInfo
 {
     TypeInfo base;
-    string   name;
-    void[]   m_init;
+    string name;
+    void[] m_init;
 }
 
-class TypeInfo_Tuple : TypeInfo
+class TypeInfo_Tuple: TypeInfo
 {
     TypeInfo[] elements;
 }
@@ -505,6 +687,22 @@ extern(C)
         import rtld.libc.string: memcmp;
         return memcmp(a1.ptr, a2.ptr, a1.length * ti.tsize()) == 0;
     }
+    
+    void[] _d_newarrayU(const TypeInfo ti, size_t length)
+    {
+        auto tiArray = cast(TypeInfo_Array)ti;
+        auto elem_ti = ti.next;
+        const size_t totalSize = length * elem_ti.tsize;
+
+        if (totalSize == 0)
+            return [];
+
+        void[] result = New(totalSize);
+        result = result.ptr[0..length];
+        return result;
+    }
+    
+    // TODO: _d_newarrayT
     
     void _d_array_slice_copy(void* dst, size_t dstlen, void* src, size_t srclen, size_t elemsz) nothrow @nogc
     {
@@ -702,6 +900,15 @@ extern(C)
         }
         return p;
     }
+}
+
+void* _d_arrayliteralTX(T)(size_t length)
+{
+    const size_t allocsize = length * T.sizeof;
+    if (allocsize == 0)
+        return null;
+    void[] buffer = New(allocsize);
+    return buffer.ptr;
 }
 
 template __supportsClassInfo(T)

@@ -31,4 +31,5 @@ public
 {
     import rtld.container.array;
     import rtld.container.hashmap;
+    import rtld.container.sorting;
 }
