@@ -506,25 +506,32 @@ extern(C)
         return memcmp(a1.ptr, a2.ptr, a1.length * ti.tsize()) == 0;
     }
     
-    void _d_assert(string file, uint line) @nogc nothrow
+    void _d_array_slice_copy(void* dst, size_t dstlen, void* src, size_t srclen, size_t elemsz) nothrow @nogc
     {
-        assertionError(file, line);
-    }
-    
-    void _d_assertp(immutable(char)* file, uint line) @nogc nothrow
-    {
-        import rtld.libc.string: strlen;
-        assertionError(file[0..strlen(file)], line);
-    }
+        if (dstlen != srclen)
+            sliceLengthMismatchError(dstlen, srclen);
 
-    void _d_assert_msg(string msg, string file, uint line) @nogc nothrow
-    {
-        assertionErrorMsg(file, line, msg);
-    }
-    
-    void __switch_error()(string file = __FILE__, size_t line = __LINE__) @trusted
-    {
-        switchError(file, line);
+        if (dstlen == 0 || dst is src)
+            return;
+
+        size_t totalSize = dstlen * elemsz;
+
+        ubyte* d = cast(ubyte*) dst;
+        const(ubyte)* s = cast(const(ubyte)*) src;
+
+        if ((totalSize & (size_t.sizeof - 1)) == 0)
+        {
+            size_t* dW = cast(size_t*) dst;
+            const(size_t)* sW = cast(const(size_t)*) src;
+            size_t words = totalSize / size_t.sizeof;
+            for (size_t i = 0; i < words; i++)
+                dW[i] = sW[i];
+        }
+        else
+        {
+            for (size_t i = 0; i < totalSize; i++)
+                d[i] = s[i];
+        }
     }
     
     bool _d_enter_cleanup(void* exceptionObject) pure @nogc nothrow @trusted
@@ -593,32 +600,63 @@ extern(C)
         return ptr[0..toLength];
     }
 
-    void _d_arraybounds(string file, uint line) @nogc nothrow
+    void _d_assert(string file, uint line) @nogc nothrow
     {
-        // TODO
+        assertionError(file, line);
+    }
+    
+    void _d_assertp(immutable(char)* pfile, uint line) @nogc nothrow
+    {
+        import rtld.libc.string: strlen;
+        string file;
+        if (pfile !is null)
+            file = pfile[0..strlen(pfile)];
+        else
+            file = "unknown";
+        assertionError(file, line);
     }
 
-    void _d_arrayboundsp(immutable(char*) file, uint line) @nogc nothrow
+    void _d_assert_msg(string msg, string file, uint line) @nogc nothrow
     {
-        // TODO
+        assertionErrorMsg(file, line, msg);
+    }
+    
+    void __switch_error()(string file = __FILE__, size_t line = __LINE__) @trusted
+    {
+        switchError(file, line);
+    }
+
+    void _d_arraybounds(string file, uint line) @nogc nothrow
+    {
+        arrayBoundsSimpleError(file, line);
+    }
+
+    void _d_arrayboundsp(immutable(char*) pfile, uint line) @nogc nothrow
+    {
+        import rtld.libc.string: strlen;
+        string file;
+        if (pfile !is null)
+            file = pfile[0..strlen(pfile)];
+        else
+            file = "unknown";
+        arrayBoundsSimpleError(file, line);
     }
 
     void _d_arraybounds_index(string file, uint line, size_t index, size_t length) @nogc nothrow
     {
-        printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}", file, line, index, length);
         exit(1);
         arrayIndexError(file, line, index, length);
     }
     
-    void _d_arraybounds_indexp(immutable(char*) file, uint line, size_t index, size_t length) @nogc nothrow
+    void _d_arraybounds_indexp(immutable(char*) pfile, uint line, size_t index, size_t length) @nogc nothrow
     {
-        import rtld.libc.string : strlen;
-        string fileStr;
-        if (file !is null)
-            fileStr = file[0..strlen(file)];
+        import rtld.libc.string: strlen;
+        string file;
+        if (pfile !is null)
+            file = pfile[0..strlen(pfile)];
         else
-            fileStr = "unknown";
-        arrayIndexError(fileStr, line, index, length);
+            file = "unknown";
+        arrayIndexError(file, line, index, length);
     }
     
     void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
@@ -626,15 +664,15 @@ extern(C)
         arrayBoundsSliceError(file, line, lower, upper, length);
     }
     
-    void _d_arraybounds_slicep(immutable(char*)file, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
+    void _d_arraybounds_slicep(immutable(char*) pfile, uint line, size_t lower, size_t upper, size_t length) @nogc nothrow
     {
         import rtld.libc.string: strlen;
-        string fileStr;
-        if (file !is null)
-            fileStr = file[0..strlen(file)];
+        string file;
+        if (pfile !is null)
+            file = pfile[0..strlen(pfile)];
         else
-            fileStr = "unknown";
-        arrayBoundsSliceError(fileStr, line, lower, upper, length);
+            file = "unknown";
+        arrayBoundsSliceError(file, line, lower, upper, length);
     }
     
     void* _d_eh_personality = null;

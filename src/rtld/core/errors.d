@@ -55,9 +55,24 @@ void assertionError(string file, size_t line) nothrow @nogc
     exit(1);
 }
 
+pragma(inline, true)
 void assertionErrorMsg(string file, size_t line, string msg) nothrow @nogc
 {
     printFmtLn("{0}:{1}: assertion failed: {2}", file, line, msg);
+    exit(1);
+}
+
+pragma(inline, true)
+void sliceLengthMismatchError(size_t dstlen, size_t srclen) nothrow @nogc
+{
+    printFmtLn("Mismatched slice lengths in copy ({0} vs {1})", dstlen, srclen);
+    exit(1);
+}
+
+pragma(inline, true)
+void arrayBoundsSimpleError(string file, uint line) nothrow @nogc
+{
+    printFmtLn("{0}:{1}: array bounds violation (index or slice out of range)", file, line);
     exit(1);
 }
 

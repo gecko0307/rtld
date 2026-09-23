@@ -41,9 +41,16 @@ version(LDC)
     {
         version(X86_64)
         {
+            /*
             return __asm!bool(
                 "lock; cmpxchg $3, ($1); setz $0", 
                 "={ax},r,r,r,~{memory},~{cc}", 
+                ptr, cmp, val
+            );
+            */
+            return __asm!bool(
+                "lock; cmpxchg $3, ($1); setz $0", 
+                "=r,r,{ax},r,~{memory},~{cc}", 
                 ptr, cmp, val
             );
         }
@@ -197,6 +204,8 @@ else
                 mov RCX, p;
                 mov AL, [RCX];
             }
+            
+            return true;
         }
         else version(X86)
         {
@@ -205,6 +214,8 @@ else
                 mov ECX, p;
                 mov AL, [ECX];
             }
+            
+            return true;
         }
         else
         {

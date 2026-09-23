@@ -29,10 +29,10 @@ int main()
     
     int[] arr1 = New!(int[])(10);
     printFmtLn("arr1 = {0}", arr1);
-    
+
     Foo foo1 = New!Foo(99);
     printFmtLn("foo1.x = {0}", foo1.x);
-    
+
     Bar* bar = New!Bar(5);
     printFmtLn("bar = {0}", *bar);
     Delete(bar);
