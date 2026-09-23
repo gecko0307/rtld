@@ -20,38 +20,64 @@ class Foo
 struct Bar
 {
     int x;
-    int[10] arr;
+    int y;
 }
 
 int main()
 {
     memoryProfilerEnabled = true;
     
-    int[] arr1 = New!(int[])(10);
-    printFmtLn("arr1 = {0}", arr1);
+    // Dynamic array
+    {
+        int[] arr = New!(int[])(10);
+        printFmtLn("arr = {0}", arr);
+        Delete(arr);
+    }
+    
+    // Class instancing
+    {
+        Foo foo = New!Foo(99);
+        printFmtLn("foo.x = {0}", foo.x);
+        Delete(foo);
+    }
+    
+    // Structure instancing
+    {
+        Bar* bar = New!Bar(5);
+        printFmtLn("bar = {0}", *bar);
+        Delete(bar);
+    }
+    
+    // Arena
+    {
+        Arena arena = New!Arena(1024);
+        
+        Foo foo = arena.create!Foo(99);
+        printFmtLn("Arena.foo.x = {0}", foo.x);
 
-    Foo foo1 = New!Foo(99);
-    printFmtLn("foo1.x = {0}", foo1.x);
-
-    Bar* bar = New!Bar(5);
-    printFmtLn("bar = {0}", *bar);
-    Delete(bar);
+        int[] arr = arena.create!(int[])(20);
+        printFmtLn("Arena.arr = {0}", arr);
+        
+        string s = arena.cat("Hello, ", "World!");
+        printFmtLn("Arena.s = {0}", s);
+        
+        Delete(arena);
+    }
     
-    Arena arena = New!Arena(1024);
-    Foo foo2 = arena.create!Foo(99);
-    printFmtLn("foo2.x = {0}", foo2.x);
+    // Literals
+    {
+        Bar[] arr1 = [Bar(1, 2), Bar(5, 6), Bar(0, 0)];
+        printLn(arr1);
+        
+        float[] arr2 = [0.1f, 0.0f, 0.0f];
+        printLn(arr2);
+        
+        int[] arr3 = [100, 50, 85, 10, 5, 99, 0];
+        insertionSort!((a, b) => a < b)(arr3);
+        printLn(arr3);
+    }
     
-    int[] arr2 = arena.create!(int[])(20);
-    printFmtLn("arr = {0}", arr2);
-    
-    string s = arena.cat("Hello, ", "World!");
-    printStrLn(s);
-    
-    Delete(arena);
-    
-    //Delete(arr);
-    //Delete(foo);
-    
+    // Should print leaked literals from object.d
     if (allocationCount > 0)
         printMemoryLeaks();
     

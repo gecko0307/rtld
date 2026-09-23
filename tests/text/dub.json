@@ -26,7 +26,7 @@
         "allowWarnings"
     ],
     
-    "dflags-ldc": [
+    "dflags": [
         "-defaultlib=",
         "-debuglib="
     ],
