@@ -120,7 +120,7 @@ else
     
     private void lockProfiler() @nogc nothrow
     {
-        while (atomicCAS(&profilerLock, 0, 1) != 0) 
+        while(atomicCAS(&profilerLock, 0, 1) != 0)
         {
             version(LDC)
             {
