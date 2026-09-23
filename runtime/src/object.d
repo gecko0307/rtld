@@ -206,7 +206,74 @@ class TypeInfo_Inout: TypeInfo_Const {} // inout(T)
 
 class TypeInfo_Class: TypeInfo
 {
+    override string toString() const pure { return name; }
+    
+    /*
+    // TODO
+    override bool opEquals(const TypeInfo o) const
+    {
+        if (this is o)
+            return true;
+        auto c = cast(const TypeInfo_Class)o;
+        return c && this.name == c.name;
+    }
+    
+    override size_t getHash(scope const void* p) @trusted const
+    {
+        auto o = *cast(Object*)p;
+        return o ? o.toHash() : 0;
+    }
+    
+        override bool equals(in void* p1, in void* p2) const
+    {
+        Object o1 = *cast(Object*)p1;
+        Object o2 = *cast(Object*)p2;
+
+        return (o1 is o2) || (o1 && o1.opEquals(o2));
+    }
+
+    override int compare(in void* p1, in void* p2) const
+    {
+        Object o1 = *cast(Object*)p1;
+        Object o2 = *cast(Object*)p2;
+        int c = 0;
+
+        // Regard null references as always being "less than"
+        if (o1 !is o2)
+        {
+            if (o1)
+            {
+                if (!o2)
+                    c = 1;
+                else
+                    c = o1.opCmp(o2);
+            }
+            else
+                c = -1;
+        }
+        return c;
+    }
+    */
+    
+    override @property size_t tsize() nothrow pure const
+    {
+        return Object.sizeof;
+    }
+    
+    override const(void)[] initializer() nothrow pure const @safe
+    {
+        return m_init;
+    }
+    
     override @property uint flags() nothrow pure const { return 1; }
+    
+    override @property const(OffsetTypeInfo)[] offTi() nothrow pure const
+    {
+        return m_offTi;
+    }
+    
+    final @property auto info() @safe @nogc nothrow pure const return { return this; }
+    final @property auto typeinfo() @safe @nogc nothrow pure const return { return this; }
     
     byte[] m_init;
     string name;
@@ -236,6 +303,8 @@ class TypeInfo_Class: TypeInfo
     immutable(void)* m_RTInfo;
     override @property immutable(void)* rtInfo() const { return m_RTInfo; }
     uint[4] nameSig;
+    
+    // TODO
 }
 
 class TypeInfo_Interface : TypeInfo
@@ -400,6 +469,7 @@ class TypeInfo_Array: TypeInfo
         return 0;
     }
 
+    // TODO
     //override @property immutable(void)* rtInfo() nothrow pure const @safe { return RTInfo!(void[]); }
 }
 
@@ -607,24 +677,25 @@ class TypeInfo_Struct: TypeInfo
 
     @safe pure nothrow
     {
-        size_t   function(in void*)           xtoHash;
-        bool     function(in void*, in void*) xopEquals;
-        int      function(in void*, in void*) xopCmp;
-        string   function(in void*)           xtoString;
+        size_t function(in void*) xtoHash;
+        bool function(in void*, in void*) xopEquals;
+        int function(in void*, in void*) xopCmp;
+        string function(in void*) xtoString;
 
-        enum StructFlags : uint
+        enum StructFlags: uint
         {
             hasPointers = 0x1,
             isDynamicType = 0x2,
         }
+        
         StructFlags m_flags;
     }
     union
     {
-        void function(void*)                xdtor;
+        void function(void*) xdtor;
         void function(void*, const TypeInfo_Struct ti) xdtorti;
     }
-    void function(void*)                    xpostblit;
+    void function(void*) xpostblit;
 
     uint m_align;
 
@@ -804,6 +875,24 @@ extern(C)
         }
     }
     
+    Object _d_allocclass(const TypeInfo_Class ti)
+    {
+        import rtld.libc.string;
+        
+        size_t objectSize = ti.initializer().length;
+        
+        if (objectSize == 0)
+            error("Invalid class size in _d_allocclass");
+
+        void[] memory = New(objectSize, "object.d", __LINE__);
+        void* ptr = memory.ptr;
+
+        const void[] initSymbol = ti.initializer();
+        memcpy(ptr, initSymbol.ptr, objectSize);
+        
+        return cast(Object)ptr;
+    }
+    
     bool _d_enter_cleanup(void* exceptionObject) pure @nogc nothrow @trusted
     {
         return true;
@@ -974,12 +1063,11 @@ extern(C)
     }
 }
 
-T[] _d_newarrayT(T)(size_t length, bool isShared = false)
+T[] _d_newarrayT(T)(size_t size, bool isShared = false)
 {
-    if (length == 0)
+    if (size == 0)
         return [];
-    size_t allocsize = length * T.sizeof;
-    return New!(T[])(allocsize, "object.d", __LINE__);
+    return New!(T[])(size, "object.d", __LINE__);
 }
 
 void* _d_arrayliteralTX(T)(size_t length)
@@ -991,6 +1079,18 @@ void* _d_arrayliteralTX(T)(size_t length)
     return buffer.ptr;
 }
 
+T _d_newclassT(T)()
+{
+    import rtld.libc.string;
+    size_t allocsize = __traits(classInstanceSize, T);
+    if (allocsize == 0)
+        return null;
+    void* memory = New(allocsize, "object.d", __LINE__).ptr;
+    const(void)[] initSymbol = __traits(initSymbol, T);
+    memcpy(memory, initSymbol.ptr, allocsize);
+    return cast(T)memory;
+}
+
 template __supportsClassInfo(T)
 {
     static if (is(T == class))
@@ -999,8 +1099,9 @@ template __supportsClassInfo(T)
         enum __supportsClassInfo = false;
 }
 
-private bool _d_isbaseof2(scope TypeInfo_Class oc, scope const TypeInfo_Class c,
-                          scope ref size_t offset) @safe pure nothrow @nogc
+private bool _d_isbaseof2(
+    scope TypeInfo_Class oc, scope const TypeInfo_Class c,
+    scope ref size_t offset) @safe pure nothrow @nogc
 {
     if (oc is c)
         return true;

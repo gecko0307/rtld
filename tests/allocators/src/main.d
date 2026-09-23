@@ -91,7 +91,9 @@ int main()
     
     // new for classes
     {
-        // TODO
+        Foo foo = new Foo(5);
+        printFmtLn("foo.x = {0}", foo.x);
+        Delete(foo);
     }
     
     // Should print leaked literals from object.d
