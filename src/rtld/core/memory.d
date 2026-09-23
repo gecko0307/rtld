@@ -34,7 +34,7 @@ import rtld.core.errors;
 import rtld.libc.string;
 import rtld.memory;
 
-enum ulong MP_RECORD_MAGIC = 0xBADBEEF;
+enum ulong MP_RECORD_MAGIC = 0xDEADBEEF;
 
 struct MPRecord
 {
