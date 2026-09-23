@@ -30,4 +30,5 @@ module rtld.container;
 public
 {
     import rtld.container.array;
+    import rtld.container.hashmap;
 }

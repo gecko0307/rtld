@@ -14,4 +14,11 @@ void main()
     arr.append(5);
     
     printLn(arr.data);
+    
+    FlatHashMap!int hashMap = New!(FlatHashMap!int)();
+    hashMap["foo"] = 10;
+    hashMap["bar"] = 20;
+    printLn(hashMap["foo"]);
+    printLn(hashMap["bar"]);
+    Delete(hashMap);
 }
