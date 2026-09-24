@@ -23,7 +23,7 @@ RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64
 - `rtld.sys.windows` - WinAPI binding (WIP)
 - `rtld.sys.posix` - POSIX binding (WIP)
 - `rtld.sys.linux` - Linux kernel API and subsystems binding (WIP)
-- `rtld.text` - text encodings (UTF-8, UTF-16), GC free `String` type, string formatting
+- `rtld.text` - text encodings (UTF-8, UTF-16), GC-free `String` type, string formatting
 - `rtld.time` - cross-platform date-time functions.
 
 ## Usage
