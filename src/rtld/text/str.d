@@ -498,6 +498,31 @@ struct String
                 s ~= "{?}";
             }
         }
+        else static if (isPointer!T)
+        {
+            if (val is null)
+            {
+                this ~= "null";
+                return;
+            }
+
+            this ~= "0x";
+
+            size_t addr = cast(size_t)val;
+            
+            enum hexLength = size_t.sizeof * 2;
+            char[hexLength] buf;
+            
+            static immutable char[16] hexDigits = "0123456789abcdef";
+
+            for (size_t i = hexLength; i > 0; i--)
+            {
+                buf[i - 1] = hexDigits[addr & 0xF];
+                addr >>= 4;
+            }
+
+            this ~= buf;
+        }
         else
         {
             this ~= "{?}";

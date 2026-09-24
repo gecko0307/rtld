@@ -104,6 +104,12 @@ template ElementType(T)
 }
 
 ///
+template isPointer(T)
+{
+    enum isPointer = is(T: const(void)*);
+}
+
+///
 template isClass(T)
 {
     enum isClass = is(T == class);

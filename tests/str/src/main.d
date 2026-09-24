@@ -10,7 +10,6 @@ int main()
 {
     memoryProfilerEnabled = true;
     
-    /*
     String s1 = "Hello";
     s1 ~= ", World";
     s1 ~= '!';
@@ -29,11 +28,10 @@ int main()
     String s3 = String.fromFile("test.txt");
     printf("%s\n", s3.ptr);
     s3.free();
-    */
     
     TestClass t = New!TestClass();
     
-    String s4 = format("Name: {0}, age: {1}, employed: {2}, weight: {3}, class: {4}", "John Doe", 30, true, 80.0f, t);
+    String s4 = format("Name: {0}, age: {1}, employed: {2}, weight: {3}, class: {4}, ptr: {5}", "John Doe", 30, true, 80.0f, t, cast(void*)t);
     printf("%s\n", s4.ptr);
     printf("%d\n", s4.length);
     s4.free();
