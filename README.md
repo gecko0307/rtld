@@ -10,6 +10,8 @@ RTLD aims to be a minimal runtime library for D, alternative to Phobos/druntime.
 
 RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64. Some parts of it are also platform-agnostic and can be used on bare metal.
 
+RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dlib) and will be a backend for the future dlib 2.0.
+
 ## Features
 
 - `rtld.core` - cross-platform core API, including stdout, file I/O, memory allocator, dynamic library loader, threads, atomics, type traits, etc.
