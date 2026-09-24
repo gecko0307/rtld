@@ -122,6 +122,12 @@ template isInterface(T)
 }
 
 ///
+template isObject(T)
+{
+    enum isObject = isClass!T || isInterface!T;
+}
+
+///
 template hasConstructor(T)
 {
     enum hasConstructor = __traits(hasMember, T, "__ctor");
@@ -141,4 +147,11 @@ template isFinalizable(T)
         is(T == interface) ||
         hasDestructor!T ||
         isDynamicArray!T;
+}
+
+///
+template isConvertibleToString(T)
+{
+    enum isConvertibleToString =
+        __traits(hasMember, T, "toString") && is(typeof(arg.toString()): const(char)[]);
 }

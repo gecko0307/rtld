@@ -28,8 +28,8 @@ DEALINGS IN THE SOFTWARE.
 module rtld.core.io;
 
 import rtld.core.traits;
-import rtld.libc.stdio;
 import rtld.text.encodings: toUTF8z;
+import rtld.container.array;
 
 version(Windows)
 {
@@ -38,13 +38,7 @@ version(Windows)
 }
 else version(Posix)
 {
-    extern(C) nothrow @nogc
-    {
-        import rtld.libc.stdint: c_long;
-        c_long write(int fd, const(void)* buf, c_long count);
-    }
-    
-    private enum STDOUT_FILENO = 1;
+    import rtld.sys.posix.unistd;
 }
 
 void printStr(const(char)[] msg) @nogc nothrow
@@ -74,14 +68,20 @@ void printStrLn(const(char)[] msg) @nogc nothrow
     printStr("\n");
 }
 
-void print(T)(T arg)
+void print(T)(T arg, bool quote = false) @nogc nothrow
 {
-    static if (is(T == const(char)[]) || is(T == string) || is(T == char[]))
+    static if (isString!T)
     {
+        if (quote)
+            printStr("\"");
         printStr(arg);
+        if (quote)
+            printStr("\"");
     }
-    else static if (is(T == const(wchar)[]) || is(T == wstring) || is(T == wchar[]))
+    else static if (isWString!T)
     {
+        if (quote)
+            printStr("\"");
         ubyte[1024] stackBuffer = void;
         const(char)* utf8Resultz = toUTF8z(arg, stackBuffer[]);
         if (utf8Resultz !is null)
@@ -92,29 +92,87 @@ void print(T)(T arg)
             printStr(utf8Resultz[0..len]);
         }
         else
-            printStr("{ERROR}");
+            printStr("?");
+        if (quote)
+            printStr("\"");
     }
-    else static if (is(T: long))
+    else static if (isInteger!T)
     {
-        char[32] tmpBuf = void;
-        int len;
-        static if (is(T == ulong) || is(T == uint) || is(T == ushort) || is(T == ubyte))
-            len = snprintf(tmpBuf.ptr, tmpBuf.length, "%llu".ptr, cast(ulong)arg);
-        else
-            len = snprintf(tmpBuf.ptr, tmpBuf.length, "%lld".ptr, cast(long)arg);
-        if (len > 0 && len < tmpBuf.length)
-            printStr(tmpBuf[0..len]);
-        else
-            printStr("{INT_ERR}");
+        if (arg == 0)
+        {
+            printStr("0");
+            return;
+        }
+        
+        if (arg < 0)
+        {
+            printStr("-");
+            arg = -arg;
+        }
+        
+        char[20] buf;
+        size_t pos = buf.length;
+        
+        while(arg > 0)
+        {
+            pos--;
+            buf[pos] = cast(char)('0' + (arg % 10));
+            arg /= 10;
+        }
+        
+        printStr(cast(string)buf[pos..$]);
     }
-    else static if (is(T: double) || is(T: float))
+    else static if (isFloatingPoint!T)
     {
-        char[32] tmpBuf = void;
-        int len = snprintf(tmpBuf.ptr, tmpBuf.length, "%g".ptr, cast(T)arg);
-        if (len > 0 && len < tmpBuf.length)
-            printStr(tmpBuf[0..len]);
-        else
-            printStr("{ERROR}");
+        if (arg != arg)
+        {
+            printStr("nan");
+            return;
+        }
+        if (arg == T.infinity)
+        {
+            printStr("inf");
+            return;
+        }
+        if (arg == -T.infinity)
+        {
+            printStr("-inf");
+            return;
+        }
+        if (arg < 0)
+        {
+            printStr("-");
+            arg = -arg;
+        }
+
+        long integerPart = cast(long)arg;
+        print(integerPart);
+        printStr(".");
+
+        double fractionalPart = arg - integerPart;
+        int precision = 6;
+        
+        char[20] buf;
+        size_t pos = 0;
+
+        while(precision > 0)
+        {
+            fractionalPart *= 10;
+            int digit = cast(int)fractionalPart;
+            
+            buf[pos] = cast(char)('0' + digit);
+            pos++;
+            
+            fractionalPart -= digit;
+            precision--;
+        }
+
+        while(pos > 1 && buf[pos - 1] == '0')
+        {
+            pos--;
+        }
+
+        printStr(cast(string)buf[0..pos]);
     }
     else static if (is(T == bool))
     {
@@ -127,14 +185,13 @@ void print(T)(T arg)
         {
             if (i > 0)
                 printStr(", ");
-            print(element);
+            print(element, true);
         }
         printStr("]");
     }
-    else static if (__traits(hasMember, T, "toString") && 
-                    is(typeof(arg.toString()) : const(char)[]))
+    else static if (isConvertibleToString!T)
     {
-        static if (is(T == class) || is(T == interface))
+        static if (isObject!T)
         {
             if (arg is null)
             {
@@ -162,9 +219,70 @@ void print(T)(T arg)
         {
             static if (i > 0)
                 printStr(", ");
-            print(arg.tupleof[i]);
+            print(arg.tupleof[i], true);
         }
         printStr(")");
+    }
+    else static if (isObject!T)
+    {
+        if (arg is null)
+        {
+            printStr("null");
+            return;
+        }
+        
+        static if (is(T == interface))
+        {
+            auto obj = cast(Object)arg;
+            auto classInfo = obj ? typeid(obj) : null;
+        }
+        else
+        {
+            auto classInfo = typeid(arg);
+        }
+
+        if (classInfo !is null)
+        {
+            string fullName = classInfo.name;
+            
+            size_t lastDot = 0;
+            foreach (i; 0..fullName.length)
+            {
+                if (fullName[i] == '.')
+                    lastDot = i + 1;
+            }
+            
+            printStr(fullName[lastDot..$]);
+        }
+        else
+        {
+            printStr("{?}");
+        }
+    }
+    else static if (isPointer!T)
+    {
+        if (arg is null)
+        {
+            printStr("null");
+            return;
+        }
+
+        printStr("0x");
+
+        size_t addr = cast(size_t)arg;
+        
+        enum hexLength = size_t.sizeof * 2;
+        char[hexLength] buf;
+        
+        static immutable char[16] hexDigits = "0123456789abcdef";
+
+        for (size_t i = hexLength; i > 0; i--)
+        {
+            buf[i - 1] = hexDigits[addr & 0xF];
+            addr >>= 4;
+        }
+
+        printStr(cast(string)buf);
     }
     else
     {
@@ -172,13 +290,13 @@ void print(T)(T arg)
     }
 }
 
-void printLn(T)(T arg)
+void printLn(T)(T arg) @nogc nothrow
 {
     print(arg);
     printStr("\n");
 }
 
-void printFmt(Args...)(const(char)[] fmt, Args args)
+void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
     size_t lastIdx = 0;
 
@@ -205,18 +323,18 @@ void printFmt(Args...)(const(char)[] fmt, Args args)
 
                 bool found = false;
 
-                static foreach (idx, Arg; Args) 
+                static foreach (idx, Arg; Args)
                 {
-                    if (!found && argIdx == idx) 
+                    if (!found && argIdx == idx)
                     {
                         print(args[idx]);
                         found = true;
                     }
                 }
 
-                if (!found) 
+                if (!found)
                 {
-                    printStr("{!INDEX_OUT_OF_BOUNDS}");
+                    printStr("{?}");
                 }
                 
                 i = j; 
@@ -230,7 +348,7 @@ void printFmt(Args...)(const(char)[] fmt, Args args)
     }
 }
 
-void printFmtLn(Args...)(const(char)[] fmt, Args args)
+void printFmtLn(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
     printFmt(fmt, args);
     printStr("\n");

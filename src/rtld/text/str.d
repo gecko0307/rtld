@@ -462,7 +462,7 @@ struct String
             }
             this ~= val.toString();
         }
-        else static if (isClass!T || isInterface!T)
+        else static if (isObject!T)
         {
             if (val is null)
             {

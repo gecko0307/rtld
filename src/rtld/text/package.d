@@ -30,8 +30,10 @@ module rtld.text;
 
 public
 {
+    import rtld.text.ascii;
     import rtld.text.common;
     import rtld.text.encodings;
+    import rtld.text.lexer;
     import rtld.text.format;
     import rtld.text.str;
     import rtld.text.utf8;

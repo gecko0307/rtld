@@ -32,6 +32,7 @@ public
     import rtld.core._version;
     import rtld.core.atomic;
     import rtld.core.bitio;
+    import rtld.core.compound;
     import rtld.core.file;
     import rtld.core.io;
     import rtld.core.linker;

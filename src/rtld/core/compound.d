@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2026 Timur Gafarov
+Copyright (c) 2011-2026 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -25,33 +25,45 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld.sys.posix.unistd;
 
-version(Posix):
+/**
+ * Compile-time sequence (aka tuple) + struct hybrid
+ *
+ * Description:
+ * This template can be used to construct data types on the fly 
+ * and return them from functions, which cannot be done with pure compile-time sequences.
+ * One possible use case for such types is returning result and error message 
+ * from function instead of throwing an exception.
+ *
+ * Copyright: Timur Gafarov 2011-2026.
+ * License: $(LINK2 htpps://boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors: Timur Gafarov
+ */
+module rtld.core.compound;
 
-public import rtld.sys.posix.sys.types;
-public import rtld.sys.posix.sys.stat;
-
-enum int SEEK_SET = 0;
-enum int SEEK_CUR = 1;
-enum int SEEK_END = 2;
-
-enum int F_OK = 0;
-enum int X_OK = 1;
-enum int W_OK = 2;
-enum int R_OK = 4;
-
-enum STDOUT_FILENO = 1;
-
-extern(C) nothrow @nogc
+/**
+ * A struct that consists of a compile-time sequence T.
+ * Allows square bracket access to the members of a sequence
+ */
+struct Compound(T...)
 {
-    pid_t getpid();
-    
-    int close(int fd);
-    int fsync(int fd);
-    off_t lseek(int fildes, off_t offset, int whence);
-    ssize_t read(int fd, void* buf, size_t_posix count);
-    ssize_t write(int fd, const(void)* buf, size_t_posix count);
-    int access(const(char)* path, int mode);
-    int stat(const(char)* path, stat_t* statbuf);
+    T tuple;
+    alias tuple this;
+}
+
+/**
+ * Returns a Compound consisting of args
+ */
+Compound!(T) compound(T...)(T args)
+{
+    return Compound!(T)(args);
+}
+
+///
+unittest
+{
+    auto c = compound(true, 0.5f, "hello");
+    assert(c[0] == true);
+    assert(c[1] == 0.5f);
+    assert(c[2] == "hello");
 }
