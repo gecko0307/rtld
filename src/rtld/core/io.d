@@ -34,6 +34,7 @@ import rtld.container.array;
 version(Windows)
 {
     import rtld.sys.windows;
+    
     private __gshared HANDLE hStdOut;
 }
 else version(Posix)
@@ -58,7 +59,7 @@ void printStr(const(char)[] msg) @nogc nothrow
     }
     else version(Posix)
     {
-        write(STDOUT_FILENO, msg.ptr, cast(c_long)msg.length);
+        write(STDOUT_FILENO, msg.ptr, cast(size_t_posix)msg.length);
     }
 }
 
