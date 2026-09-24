@@ -52,6 +52,12 @@ template isFloatingPoint(T)
 }
 
 ///
+template isSingleFloat(T)
+{
+    enum isSingleFloat = is(Unqual!T == float);
+}
+
+///
 template isStaticArray(T)
 {
     enum isStaticArray = is(T == U[N], U, size_t N);

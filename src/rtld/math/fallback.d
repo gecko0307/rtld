@@ -27,12 +27,12 @@ DEALINGS IN THE SOFTWARE.
 */
 
 /**
- * Fallback math functions.
+ * Fallback elementary math functions.
  *
  * Description:
- * Provides platform-independent fallbacks for the following elementary functions:
+ * Provides platform-independent fallbacks for the following functions:
  * - abs, fabs
- * - trunc, floor, ceil, round, fmod
+ * - trunc, floor, ceil, round, rint, nearbyint
  * - sqrt, cbrt
  * - sin, cos, tan
  * - asin, acos, atan, atan2
@@ -40,7 +40,6 @@ DEALINGS IN THE SOFTWARE.
  * - hypot, modf,
  * - sinh, cosh, tanh
  * - asinh, acosh, atanh
- * - rint, nearbyint
  * - fma
  * - signbit, copysign
  */
@@ -50,16 +49,95 @@ import rtld.core.traits;
 import rtld.math.constants;
 import rtld.math.utils;
 
+private template SignLayout(T)
+{
+    static if (T.mant_dig == 24) // IEEE binary32
+    {
+        alias Word = uint;
+        enum size_t index = 0;
+        enum Word mask = 0x8000_0000;
+    }
+    else static if (T.mant_dig == 53) // IEEE binary64
+    {
+        alias Word = ulong;
+        enum size_t index = 0;
+        enum Word mask = 0x8000_0000_0000_0000;
+    }
+    else static if (T.mant_dig == 64) // x87 80-bit extended (always little-endian)
+    {
+        alias Word = ushort; // sign lives in the top bit of bytes 8..9
+        enum size_t index = 4;
+        enum Word mask = 0x8000;
+    }
+    else static if (T.mant_dig == 113) // IEEE binary128
+    {
+        alias Word = ushort;
+        version (LittleEndian) enum size_t index = 7;
+        else                   enum size_t index = 0;
+        enum Word mask = 0x8000;
+    }
+    else
+        static assert(0, "copysign: unsupported floating-point format " ~ T.stringof);
+}
+
+private union Bits(T)
+{
+    T value;
+    SignLayout!T.Word[T.sizeof / SignLayout!T.Word.sizeof] word;
+}
+
+pragma(inline, true)
+bool signbitFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (__ctfe)
+        // NaN sign isn't observable at CTFE
+        return x < 0 || (x == 0 && 1 / x < 0);
+
+    alias L = SignLayout!T;
+    Bits!T b;
+    b.value = x;
+    return (b.word[L.index] & L.mask) != 0;
+}
+
 pragma(inline, true)
 T absFallback(T)(T v) pure nothrow @nogc
 {
     return (v > 0.0)? v : -v;
 }
 
-alias fabsFallback = absFallback;
+T fabsFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (__ctfe)
+        return signbitFallback(x) ? -x : x;
+    alias L = SignLayout!T;
+    Bits!T b;
+    b.value = x;
+    b.word[L.index] &= cast(L.Word) ~L.mask;
+    return b.value;
+}
 
-alias fmaxFallback = max2;
-alias fminFallback = min2;
+//alias fmaxFallback = max2;
+//alias fminFallback = min2;
+
+T fmaxFallback(T)(T x, T y) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x) return y;
+    if (y != y) return x;
+    if (x == y) return signbitFallback(x) ? y : x;
+    return x > y ? x : y;
+}
+
+T fminFallback(T)(T x, T y) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x) return y;
+    if (y != y) return x;
+    if (x == y) return signbitFallback(x) ? x : y;
+    return x < y ? x : y;
+}
 
 ///////////////////////////////////////
 
@@ -75,15 +153,29 @@ version(X86)
 version(X86_64)
     version = UseX87Math;
 
-import rtld.math.trigtables;
+//import rtld.math.trigtables;
 
+/*
 pragma(inline, true)
 T truncFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     return cast(long)x;
 }
+*/
 
+T truncFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T M = 1 / T.epsilon;
+    immutable T ax = fabsFallback(x);
+    if (!(ax < M)) return x;
+    T r = (ax + M) - M;
+    if (r > ax) r -= 1; // rounded up: step back to truncate
+    return copysignFallback(r, x); // keeps -0.0, e.g. trunc(-0.5) == -0.0
+}
+
+/*
 pragma(inline, true)
 T floorFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
@@ -91,7 +183,16 @@ T floorFallback(T)(T x) pure nothrow @nogc
     long intPart = cast(long)x;
     return (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
 }
+*/
 
+T floorFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    immutable T r = truncFallback(x);
+    return (x < r) ? r - 1 : r; // floor(-0.5) == -1, floor(-0.0) == -0.0
+}
+
+/*
 pragma(inline, true)
 T ceilFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
@@ -100,7 +201,16 @@ T ceilFallback(T)(T x) pure nothrow @nogc
     T xtrunc = (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
     return (xtrunc < x)? xtrunc + 1 : x;
 }
+*/
 
+T ceilFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    immutable T r = truncFallback(x);
+    return (x > r) ? r + 1 : r; // ceil(-0.5) == -0.0
+}
+
+/*
 pragma(inline, true)
 T roundFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
@@ -110,6 +220,48 @@ T roundFallback(T)(T x) pure nothrow @nogc
     else
         return cast(long)(x + 0.5);
 }
+*/
+
+// Half away from zero.
+T roundFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T M = 1 / T.epsilon;
+    T ax = fabsFallback(x);
+    if (!(ax < M)) return x;
+    T t = truncFallback(ax);
+    if (ax - t >= 0.5) t += 1; // ax - t is exact
+    return copysignFallback(t, x);
+}
+
+/*
+/// Rounds to the nearest integer.
+T rintFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    T r = floorFallback(x + 0.5);
+    if (x - floorFallback(x) == 0.5)
+    {
+        if (r % 2.0 != 0.0)
+        {
+            r -= 1.0;
+        }
+    }
+    return r;
+}
+*/
+
+// Current rounding mode (round-half-even by default).
+T rintFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T M = 1 / T.epsilon;
+    if (!(fabsFallback(x) < M)) return x;
+    T r = (x >= 0) ? (x + M) - M : (x - M) + M;   // signed, so directed modes work
+    return copysignFallback(r, x);            // keeps -0.0
+}
+
+alias nearbyintFallback = rintFallback;
 
 T sqrtFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
@@ -118,7 +270,7 @@ T sqrtFallback(T)(T x) pure nothrow @nogc
     {
         T result;
         
-        if (is(T == float))
+        static if (isSingleFloat!T)
         {
             asm pure nothrow @nogc
             {
@@ -167,6 +319,7 @@ T cbrtFallback(T)(T x) pure nothrow @nogc
     return a;
 }
 
+/++
 T sinFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
@@ -212,6 +365,101 @@ T cosFallback(T)(T x) pure nothrow @nogc
     int zero = cast(int)j;
     T nx = j - zero;
     return (1.0 - nx) * cosTable[zero][0] + nx * cosTable[zero + 1][0];
+}
+++/
+
+// x = n*pi/2 + (y0 + y1), |y0| <= pi/4. Returns n mod 4.
+// Accurate for |x| < 2^20 * pi/2 (~1.6e6); beyond that you need Payne-Hanek.
+private int reducePio2(double x, out double y0, out double y1) pure nothrow @nogc
+{
+    enum double invpio2 = 6.36619772367581382433e-01,
+                pio2_1  = 1.57079632673412561417e+00,   // first 33 bits of pi/2
+                pio2_2  = 6.07710050630396597660e-11,   // next 33 bits
+                pio2_2t = 2.02226624879595063154e-21,
+                pio2_3  = 2.02226624871116645580e-21,   // next 33 bits
+                pio2_3t = 8.47842766036889956997e-32;
+
+    immutable double fn = rintFallback(x * invpio2);
+    double r = x - fn * pio2_1;                         // exact
+    double t = r;
+    double w = fn * pio2_2;
+    r = t - w;
+    w = fn * pio2_2t - ((t - r) - w);
+    t = r;
+    w = fn * pio2_3;
+    r = t - w;
+    w = fn * pio2_3t - ((t - r) - w);
+    y0 = r - w;
+    y1 = (r - y0) - w;
+    return cast(int)(cast(long) fn & 3);
+}
+
+// sin(x + y) for |x| <= pi/4; y is a tiny correction term (the tail of the reduced argument)
+pragma(inline, true)
+private double sinKernel(double x, double y) pure nothrow @nogc
+{
+    enum double S1 = -1.66666666666666324348e-01, S2 =  8.33333333332248946124e-03,
+                S3 = -1.98412698298579493134e-04, S4 =  2.75573137070700676789e-06,
+                S5 = -2.50507602534068634195e-08, S6 =  1.58969099521155010221e-10;
+    immutable double z = x * x;
+    immutable double v = z * x;
+    immutable double r = S2 + z * (S3 + z * (S4 + z * (S5 + z * S6)));
+    return x - ((z * (0.5 * y - v * r) - y) - v * S1);
+}
+
+pragma(inline, true)
+private double cosKernel(double x, double y) pure nothrow @nogc
+{
+    enum double C1 =  4.16666666666666019037e-02, C2 = -1.38888888888741095749e-03,
+                C3 =  2.48015872894767294178e-05, C4 = -2.75573143513906633035e-07,
+                C5 =  2.08757232129817482790e-09, C6 = -1.13596475577881948265e-11;
+    immutable double z  = x * x;
+    immutable double r  = z * (C1 + z * (C2 + z * (C3 + z * (C4 + z * (C5 + z * C6)))));
+    immutable double hz = 0.5 * z;
+    immutable double w  = 1.0 - hz;
+    return w + (((1.0 - w) - hz) + (z * r - x * y));
+}
+
+T sinFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    double xd = x;
+    double ax = fabsFallback(xd);
+
+    if (ax < 0x1p-27)
+        return cast(T)xd; // +-0 (sign kept) and tiny x
+    if (!(ax < double.infinity))
+        return cast(T)(xd - xd); // NaN, +-inf -> NaN
+
+    double y0, y1;
+    switch (reducePio2(xd, y0, y1))
+    {
+        case 0:  return cast(T)  sinKernel(y0, y1);
+        case 1:  return cast(T)  cosKernel(y0, y1);
+        case 2:  return cast(T) -sinKernel(y0, y1);
+        default: return cast(T) -cosKernel(y0, y1);
+    }
+}
+
+T cosFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    double xd = x;
+    double ax = fabsFallback(xd);
+
+    if (ax < 0x1p-27)
+        return 1;
+    if (!(ax < double.infinity))
+        return cast(T) (xd - xd); // NaN, +-inf -> NaN
+
+    double y0, y1;
+    switch (reducePio2(xd, y0, y1))
+    {
+        case 0:  return cast(T)  cosKernel(y0, y1);
+        case 1:  return cast(T) -sinKernel(y0, y1);
+        case 2:  return cast(T) -cosKernel(y0, y1);
+        default: return cast(T)  sinKernel(y0, y1);
+    }
 }
 
 pragma(inline, true)
@@ -342,6 +590,102 @@ T exp2Fallback(T)(T x) pure nothrow @nogc
     return expFallback(x * cast(T)LN2);
 }
 
+private union DBits { double d; ulong u; }
+
+// Splits finite x > 0 into m * 2^e; returns m.
+private double splitLog(T)(T x, out int e) pure nothrow @nogc
+{
+    e = 0;
+    static if (T.max_exp > 1024) // real wider than double: rescale into double's range
+    {
+        while (x > 0x1p+1000L) { x *= 0x1p-1000L; e += 1000; }
+        while (x < 0x1p-1000L) { x *= 0x1p+1000L; e -= 1000; }
+    }
+    DBits b;
+    b.d = x;
+    if ((b.u >> 52) == 0) // subnormal double
+    {
+        b.d *= 0x1p54;
+        e -= 54;
+    }
+    e += cast(int)(b.u >> 52) - 1023;
+    b.u = (b.u & 0x000F_FFFF_FFFF_FFFF) | 0x3FF0_0000_0000_0000; // m in [1, 2)
+    double m = b.d;
+    if (m > 1.4142135623730951) { m *= 0.5; e += 1; }
+    return m;
+}
+
+// dk * ln2 + log(1 + f) for f in [sqrt(2)/2 - 1, sqrt(2) - 1]
+private double logKernel(double f, double dk) pure nothrow @nogc
+{
+    enum double ln2_hi = 6.93147180369123816490e-01,
+                ln2_lo = 1.90821492927058770002e-10,
+                Lg1 = 6.666666666666735130e-01, Lg2 = 3.999999999940941908e-01,
+                Lg3 = 2.857142874366239149e-01, Lg4 = 2.222219843214978396e-01,
+                Lg5 = 1.818357216161805012e-01, Lg6 = 1.531383769920937332e-01,
+                Lg7 = 1.479819860511658591e-01;
+
+    immutable double s    = f / (2.0 + f);
+    immutable double z    = s * s;
+    immutable double w    = z * z;
+    immutable double t1   = w * (Lg2 + w * (Lg4 + w * Lg6));
+    immutable double t2   = z * (Lg1 + w * (Lg3 + w * (Lg5 + w * Lg7)));
+    immutable double R    = t2 + t1;
+    immutable double hfsq = 0.5 * f * f;
+
+    if (dk == 0)
+        return f - (hfsq - s * (hfsq + R));
+    return dk * ln2_hi - ((hfsq - (s * (hfsq + R) + dk * ln2_lo)) - f);
+}
+
+T logFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x)            return x; // NaN
+    if (x < 0)             return T.nan;
+    if (x == 0)            return -T.infinity; // +-0
+    if (x == T.infinity)   return x;
+
+    int e;
+    immutable double m = splitLog(x, e);
+    return cast(T)logKernel(m - 1.0, e);
+}
+
+T log2Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum double LOG2E = 1.44269504088896340736;
+
+    if (x != x)            return x;
+    if (x < 0)             return T.nan;
+    if (x == 0)            return -T.infinity;
+    if (x == T.infinity)   return x;
+
+    int e;
+    immutable double m = splitLog(x, e);
+    // m == 1 for powers of two, so those come out as the exact integer e
+    return cast(T)(e + logKernel(m - 1.0, 0) * LOG2E);
+}
+
+T log10Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum double ivln10     = 4.34294481903251816668e-01,
+                log10_2hi  = 3.01029995663611771306e-01,
+                log10_2lo  = 3.69423907715893078616e-13;
+
+    if (x != x)            return x;
+    if (x < 0)             return T.nan;
+    if (x == 0)            return -T.infinity;
+    if (x == T.infinity)   return x;
+
+    int e;
+    immutable double m = splitLog(x, e);
+    immutable double lm = logKernel(m - 1.0, 0);
+    return cast(T)(e * log10_2hi + (e * log10_2lo + lm * ivln10));
+}
+
+/*
 T logFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
@@ -388,6 +732,7 @@ T log10Fallback(T)(T x) pure nothrow @nogc
 {
     return logFallback(x) * cast(T)LOG10E;
 }
+*/
 
 // x^n for finite x > 0 and integer n >= 1, by square-and-multiply.
 // Pure FP arithmetic (no casts to integers), exact while n < 2^mant_dig.
@@ -488,7 +833,7 @@ pragma(inline, true)
 T modfFallback(T)(T x, ref T iptr) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    T i = trunc(x);
+    T i = truncFallback(x);
     iptr = i;
     return x - i;
 }
@@ -553,76 +898,10 @@ T atanhFallback(T)(T x) pure nothrow @nogc
     return 0.5 * log((1.0 + x) / (1.0 - x));
 }
 
-/// Rounds to the nearest integer.
-T rintFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    T r = floorFallback(x + 0.5);
-    if (x - floorFallback(x) == 0.5)
-    {
-        if (r % 2.0 != 0.0)
-        {
-            r -= 1.0;
-        }
-    }
-    return r;
-}
-
-alias nearbyintFallback = rintFallback;
-
 pragma(inline, true)
 T fmaFallback(T)(T x, T y, T z) pure nothrow @nogc
 {
     return (x * y) + z;
-}
-
-private template SignLayout(T)
-{
-    static if (T.mant_dig == 24)            // IEEE binary32
-    {
-        alias Word = uint;
-        enum size_t index = 0;
-        enum Word mask = 0x8000_0000;
-    }
-    else static if (T.mant_dig == 53)       // IEEE binary64
-    {
-        alias Word = ulong;
-        enum size_t index = 0;
-        enum Word mask = 0x8000_0000_0000_0000;
-    }
-    else static if (T.mant_dig == 64)       // x87 80-bit extended (always little-endian)
-    {
-        alias Word = ushort;                // sign lives in the top bit of bytes 8..9
-        enum size_t index = 4;
-        enum Word mask = 0x8000;
-    }
-    else static if (T.mant_dig == 113)      // IEEE binary128
-    {
-        alias Word = ushort;
-        version (LittleEndian) enum size_t index = 7;
-        else                   enum size_t index = 0;
-        enum Word mask = 0x8000;
-    }
-    else
-        static assert(0, "copysign: unsupported floating-point format " ~ T.stringof);
-}
-
-private union Bits(T)
-{
-    T value;
-    SignLayout!T.Word[T.sizeof / SignLayout!T.Word.sizeof] word;
-}
-
-bool signbitFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (__ctfe)
-        return x < 0 || (x == 0 && 1 / x < 0);   // NaN sign isn't observable at CTFE
-
-    alias L = SignLayout!T;
-    Bits!T b;
-    b.value = x;
-    return (b.word[L.index] & L.mask) != 0;
 }
 
 T copysignFallback(T, R)(T mag, R sgn) pure nothrow @nogc
