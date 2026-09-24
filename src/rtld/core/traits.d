@@ -28,6 +28,7 @@ DEALINGS IN THE SOFTWARE.
 module rtld.core.traits;
 
 ///
+/*
 template Unqual(T)
 {
     static if (is(T U == const U) || is(T U == immutable U) ||
@@ -36,11 +37,18 @@ template Unqual(T)
     else
         alias Unqual = T;
 }
+*/
+
+///
+template Unqual(T: const U, U)
+{
+    alias Unqual = U;
+}
 
 ///
 template isFloatingPoint(T)
 {
-    enum isFloatingPoint = is(T == float) || is(T == double) || is(T == real);
+    enum isFloatingPoint = is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real);
 }
 
 ///

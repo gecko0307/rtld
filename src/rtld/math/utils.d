@@ -27,6 +27,7 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.math.utils;
 
+import rtld.core.traits;
 import rtld.math.base;
 
 /**
@@ -45,6 +46,7 @@ enum Axis
 /// Returns true is the input is NaN.
 pragma(inline, true)
 bool isNaN(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return x != x;
 }
@@ -52,6 +54,7 @@ bool isNaN(T)(T x) pure nothrow @nogc
 /// Returns true is the input is infinity.
 pragma(inline, true)
 int isInfinity(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return !isNaN(x) && isNaN(x - x);
 }
@@ -61,6 +64,7 @@ int isInfinity(T)(T x) pure nothrow @nogc
  */
 pragma(inline, true)
 T degtorad(T) (T angle) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return (angle / 180.0) * PI;
 }
@@ -70,6 +74,7 @@ T degtorad(T) (T angle) pure nothrow @nogc
  */
 pragma(inline, true)
 T radtodeg(T) (T angle) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return (angle / PI) * 180.0;
 }
@@ -79,6 +84,7 @@ T radtodeg(T) (T angle) pure nothrow @nogc
  */
 pragma(inline, true)
 T radtorev(T)(T angle) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return angle / (2.0 * PI);
 }
@@ -88,6 +94,7 @@ T radtorev(T)(T angle) pure nothrow @nogc
  */
 pragma(inline, true)
 T revtorad(T)(angle) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return angle * (2.0 * PI);
 }
@@ -175,6 +182,7 @@ T clamp(T) (T v, T minimal, T maximal) pure nothrow @nogc
  */
 pragma(inline, true)
 bool isConsiderZero(T) (T f) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return (abs(f) < EPSILON);
 }
@@ -220,6 +228,7 @@ unittest
  */
 pragma(inline, true)
 T nextPowerOfTen(T) (T k) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return pow(10, cast(int)ceil(log10(k)));
 }
@@ -383,6 +392,7 @@ unittest
  */
 pragma(inline, true)
 T fovYfromX(T) (T xfov, T aspectRatio) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     xfov = degtorad(xfov);
     T yfov = 2.0 * atan(tan(xfov * 0.5) / aspectRatio);
@@ -394,6 +404,7 @@ T fovYfromX(T) (T xfov, T aspectRatio) pure nothrow @nogc
  */
 pragma(inline, true)
 T fovXfromY(T) (T yfov, T aspectRatio) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     yfov = degtorad(yfov);
     T xfov = 2.0 * atan(tan(yfov * 0.5) * aspectRatio);
@@ -424,9 +435,10 @@ void swap(T)(T* a, T* b) pure nothrow @nogc
  * Is perfect square
  */
 pragma(inline, true)
-bool isPerfectSquare(float n) pure nothrow @nogc
+bool isPerfectSquare(T)(T n) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
-    float r = sqrt(n);
+    T r = sqrt(n);
     return (r * r == n);
 }
 
@@ -436,11 +448,23 @@ unittest
     assert(isPerfectSquare(64.0f));
 }
 
+/// True only for odd integers (false for NaN, inf, and non-integers).
+bool isOddInteger(T)(T y) pure nothrow @nogc
+{
+    if (floor(y) != y) // NaN and non-integers
+        return false;
+    if (fabs(y) >= 2 / T.epsilon) // |y| >= 2^mant_dig: always even (inf too)
+        return false;
+    T h = y * 0.5; // exact for an integer
+    return floor(h) != h;
+}
+
 /**
  * Integer part
  */
 pragma(inline, true)
 T integer(T)(T v) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     T ipart;
     modf(v, &ipart);
@@ -458,6 +482,7 @@ unittest
  */
 pragma(inline, true)
 T frac(T)(T v)
+    if (isFloatingPoint!T)
 {
     T ipart;
     return modf(v, ipart);

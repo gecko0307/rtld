@@ -182,7 +182,7 @@ T sinFallback(T)(T x) pure nothrow @nogc
     }
     if (adjusted_x > PI) 
     {
-        adjusted_x = min(PI, TWOPI - adjusted_x);
+        adjusted_x = min2(PI, TWOPI - adjusted_x);
         rsign = -1.0;
     }
     
@@ -205,7 +205,7 @@ T cosFallback(T)(T x) pure nothrow @nogc
     }
     if (adjusted_x > PI) 
     {
-        adjusted_x = min(PI, TWOPI - adjusted_x);
+        adjusted_x = min2(PI, TWOPI - adjusted_x);
     }
      
     T j = adjusted_x * (cast(T)(cosTable.length - 2) * INVPI);
@@ -389,11 +389,85 @@ T log10Fallback(T)(T x) pure nothrow @nogc
     return logFallback(x) * cast(T)LOG10E;
 }
 
-pragma(inline, true)
+// x^n for finite x > 0 and integer n >= 1, by square-and-multiply.
+// Pure FP arithmetic (no casts to integers), exact while n < 2^mant_dig.
+private T powSmallInt(T)(T x, T n) pure nothrow @nogc
+{
+    T r = 1;
+    while (n >= 1)
+    {
+        T h = floorFallback(n * 0.5);
+        if (n != h * 2)
+            r *= x;
+        x *= x; // may overflow/underflow, which is harmless here
+        n = h;
+    }
+    return r;
+}
+
 T powFallback(T)(T x, T y) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    return x ^^ y;
+    // Evaluate in double for the extra precision
+    static if (is(T == float))
+        alias FT = double;
+    else
+        alias FT = T;
+    
+    enum FT inf = FT.infinity;
+    enum FT LN2 = 0.693147180559945309417232121458176568L;
+
+    // --- IEEE 754 / C99 special cases --------------------------------
+    if (y == 0 || x == 1) return 1; // even if the other one is NaN
+    if (x != x || y != y) return T.nan;
+
+    FT ax = fabsFallback(x);
+    FT ay = fabsFallback(y);
+    bool yInt = floorFallback(y) == y; // also true for +-inf
+    bool yOdd = isOddInteger(y);
+
+    if (ay == inf)
+    {
+        if (ax == 1) return 1; // pow(-1, +-inf)
+        return ((ax < 1) == (y > 0)) ? cast(FT)0 : inf;
+    }
+    if (ax == inf)
+    {
+        bool negOdd = x < 0 && yOdd;
+        if (y > 0) return negOdd ? -inf : inf;
+        return negOdd ? copysignFallback(cast(FT)0, cast(FT) -1) : cast(FT)0;
+    }
+    if (x == 0) // +-0 base
+    {
+        if (y < 0) return yOdd ? copysignFallback(inf, x) : inf;
+        return yOdd ? x : cast(FT)0; // keeps the sign of the zero
+    }
+    if (x < 0 && !yInt)
+        return T.nan;
+
+    // magnitude: |x| ^ y
+    FT r = 0;
+    bool done = false;
+
+    // Small integer exponents: square-and-multiply is exact whenever the result is.
+    if (yInt && ay <= 64)
+    {
+        r = powSmallInt(ax, ay);
+        if (y < 0) r = 1 / r;
+        done = (r != 0 && r != inf);   // on overflow/underflow use the general path,
+    }                                  // which handles the range edges properly
+
+    // General case: 2^(y * log2|x|)
+    if (!done)
+    {
+        FT l = log2Fallback(ax);
+        FT p = y * l;
+        r = exp2Fallback(p);
+        if (fabsFallback(p) < T.max_exp)           // skip when the result is inf/0/subnormal
+            r *= 1 + fmaFallback(y, l, -p) * LN2;  // fold back the rounding error of y*l
+    }
+
+    return (x < 0 && yOdd) ? -r : r;
 }
 
 T hypotFallback(T)(T x, T y) pure nothrow @nogc
