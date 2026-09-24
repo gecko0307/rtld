@@ -39,5 +39,5 @@ void main()
     
     string normalStr = "Обычная строка";
     wstring wideStr = "Широкая строка Windows (UTF-16)"w;
-    printFmtLn("Output: {0} | {1}", normalStr, wideStr);
+    printFmtLn("Unicode: {0} | {1}", normalStr, wideStr);
 }

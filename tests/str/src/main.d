@@ -39,7 +39,8 @@ int main()
     
     Delete(t);
     
-    printMemoryLeaks();
+    if (allocatedMemory > 0)
+        printMemoryLeaks();
 
     return 0;
 }

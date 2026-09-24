@@ -40,6 +40,7 @@ import rtld.core.ownership;
 import rtld.core.traits;
 import rtld.container.array;
 import rtld.libc.stdio;
+import rtld.libc.string;
 
 /// Represents a single memory block within the `Arena`.
 struct ArenaBuffer
