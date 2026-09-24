@@ -17,7 +17,7 @@ RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64
 - `rtld.gl`- OpenGL ES 2/3
 - `rtld.hash` - non-cryptographic hash functions
 - `rtld.libc` - libc binding (WIP)
-- `rtld.math` - basic math functions
+- `rtld.math` - elementary math functions. Provides bare metal fallbacks with performance comparable to std.math
 - `rtld.memory` - allocator interface and its implementations; arena allocator
 - `rtld.random` - platform-independent non-cryptographic RNG based on Permuted Congruential Generator
 - `rtld.sys.windows` - WinAPI binding (WIP)
