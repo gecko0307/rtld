@@ -168,8 +168,6 @@ version(X86)
 version(X86_64)
     version = UseX87Math;
 
-//import rtld.math.trigtables;
-
 T truncFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
