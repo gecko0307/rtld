@@ -25,3 +25,8 @@ docs/
 
 # Debug files
 *.pdb
+
+# Tests
+rtld-test-default
+rtld-test-default.exe
+rtld-test-default.pdb
