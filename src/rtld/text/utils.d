@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019-2026 Timur Gafarov
+Copyright (c) 2016-2026 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -26,15 +26,67 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-module rtld.text;
+/**
+ * Text processing utils
+ *
+ * Copyright: Timur Gafarov 2016-2026.
+ * License: $(LINK2 boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors: Timur Gafarov
+ */
+module rtld.text.utils;
 
-public
+import rtld.core.memory;
+
+/// Make an copy of a string in unmanaged memory
+T[] copy(T)(T[] b)
 {
-    import rtld.text.common;
-    import rtld.text.encodings;
-    import rtld.text.format;
-    import rtld.text.str;
-    import rtld.text.utf8;
-    import rtld.text.utf16;
-    import rtld.text.utils;
+    auto res = New!(T[])(b.length);
+    foreach(i, c; b)
+        res[i] = c;
+    return res;
+}
+
+///
+unittest
+{
+    auto str = "hello".dup;
+    auto c = copy(str);
+    assert(c == str);
+    Delete(c);
+}
+
+/// Make an immutable copy of a string in unmanaged memory
+immutable(T)[] immutableCopy(T)(immutable(T)[] b)
+{
+    auto res = New!(T[])(b.length);
+    foreach(i, c; b)
+        res[i] = c;
+    return cast(immutable(T)[])res;
+}
+
+/// Concatenates two strings to a new string in unmanaged memory
+string catStr(string s1, string s2)
+{
+    char[] buffer = New!(char[])(s1.length + s2.length);
+    size_t i, j;
+    for(i = 0; i < s1.length; i++)
+    {
+        buffer[i] = s1[i];
+    }
+    for(j = 0; j < s2.length; j++)
+    {
+        buffer[i+j] = s2[j];
+    }
+    return cast(string)buffer;
+}
+
+///
+unittest
+{
+    auto str1 = "hello";
+    auto str2 = " world";
+
+    auto cat = catStr(str1, str2);
+    assert(cat == "hello world");
+    Delete(cat);
 }
