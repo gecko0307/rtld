@@ -656,14 +656,14 @@ void main()
         assert(approx(sinhFallback(-1.0), -1.1752011936438014, 1e-14));
  
         // small arguments: (exp(x) - exp(-x)) / 2 would lose most digits here
-        //assert(approx(sinhFallback(1e-5),  1.0000000000166667e-5, 1e-13));
-        //assert(approx(sinhFallback(-1e-5), -1.0000000000166667e-5, 1e-13));
-        //assert(approx(sinhFallback(1e-10), 1e-10, 1e-14));
+        assert(approx(sinhFallback(1e-5),  1.0000000000166667e-5, 1e-13));
+        assert(approx(sinhFallback(-1e-5), -1.0000000000166667e-5, 1e-13));
+        assert(approx(sinhFallback(1e-10), 1e-10, 1e-14));
  
         // near the overflow threshold (~710.4758): exp(x) overflows, sinh(x) doesn't
         assert(approx(sinhFallback(709.0),  4.109203730777486e307, 1e-9));
-        //assert(approx(sinhFallback(710.0),  1.1169973830808557e308, 1e-6));
-        //assert(approx(sinhFallback(-710.0), -1.1169973830808557e308, 1e-6));
+        assert(approx(sinhFallback(710.0),  1.1169973830808557e308, 1e-6));
+        assert(approx(sinhFallback(-710.0), -1.1169973830808557e308, 1e-6));
         assert(sinhFallback(711.0)  ==  double.infinity);
         assert(sinhFallback(-711.0) == -double.infinity);
         assert(sinhFallback(100.0f) ==  float.infinity);       // float overflow (~89)
@@ -691,8 +691,8 @@ void main()
         assert(coshFallback(1e-10) == 1.0);                     // 1 + 5e-21 rounds to 1
  
         assert(approx(coshFallback(709.0),  4.109203730777486e307, 1e-9));
-        //assert(approx(coshFallback(710.0),  1.1169973830808557e308, 1e-6));
-        //assert(approx(coshFallback(-710.0), 1.1169973830808557e308, 1e-6));
+        assert(approx(coshFallback(710.0),  1.1169973830808557e308, 1e-6));
+        assert(approx(coshFallback(-710.0), 1.1169973830808557e308, 1e-6));
         assert(coshFallback(711.0)  == double.infinity);
         assert(coshFallback(-711.0) == double.infinity);
         assert(coshFallback(100.0f) == float.infinity);
@@ -716,15 +716,15 @@ void main()
         assert(approx(tanhFallback(5.0),  0.9999092042625951,  1e-14));
         assert(approx(tanhFallback(-1.0), -0.7615941559557649, 1e-14));
  
-        //assert(approx(tanhFallback(1e-5),  9.999999999666667e-6, 1e-13)); // small-argument accuracy
-        //assert(approx(tanhFallback(1e-10), 1e-10, 1e-14));
+        assert(approx(tanhFallback(1e-5),  9.999999999666667e-6, 1e-13)); // small-argument accuracy
+        assert(approx(tanhFallback(1e-10), 1e-10, 1e-14));
  
         // saturation
         assert(tanhFallback(30.0)  ==  1.0);
         assert(tanhFallback(-30.0) == -1.0);
-        //assert(tanhFallback(1e10)  ==  1.0);
+        assert(tanhFallback(1e10)  ==  1.0);
         assert(tanhFallback(double.max)  ==  1.0);
-        //assert(tanhFallback(-double.max) == -1.0);
+        assert(tanhFallback(-double.max) == -1.0);
         assert(tanhFallback(double.infinity)  ==  1.0);
         assert(tanhFallback(-double.infinity) == -1.0);
  
@@ -888,21 +888,21 @@ void main()
         static foreach(T; TFloatTypes)
         {{
             assert(fn(cast(T)0) == 0  && !signbitFallback(fn(cast(T) 0)));
-            //assert(fn(negZero!T) == 0 && signbitFallback(fn(negZero!T))); // f(-0) == -0
+            assert(fn(negZero!T) == 0 && signbitFallback(fn(negZero!T))); // f(-0) == -0
             assert(isNaN(fn(T.nan)));
  
             foreach(i; -15..16) // inside every function's domain
             {
                 T x = cast(T)i * cast(T) 0.0625;
-                //assert(approx(fn(-x), -fn(x), loose!T));
+                assert(approx(fn(-x), -fn(x), loose!T));
             }
         }}
  
         static foreach(fn; TSeq!(sinhFallback, tanhFallback, asinhFallback, atanhFallback))
         {
-            //assert(approx(fn(1e-300), 1e-300, 1e-14)); // f(x) == x for tiny x
-            //assert(approx(fn(-1e-300), -1e-300, 1e-14));
-            //assert(approx(fn(double.min_normal * double.epsilon), double.min_normal * double.epsilon, 1e-14)); // smallest subnormal
+            assert(approx(fn(1e-300), 1e-300, 1e-14)); // f(x) == x for tiny x
+            assert(approx(fn(-1e-300), -1e-300, 1e-14));
+            assert(approx(fn(double.min_normal * double.epsilon), double.min_normal * double.epsilon, 1e-14)); // smallest subnormal
         }
     }
     

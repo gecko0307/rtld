@@ -36,7 +36,7 @@ DEALINGS IN THE SOFTWARE.
  * - sqrt, cbrt
  * - sin, cos, tan
  * - asin, acos, atan, atan2
- * - exp, exp2, log, log2, log10, log1p, pow
+ * - exp, exp2, log, log2, log10, log1p, pow, expm1
  * - hypot, modf,
  * - sinh, cosh, tanh
  * - asinh, acosh, atanh
@@ -152,6 +152,27 @@ T log1pFallback(T)(T x) pure nothrow @nogc
     if (u == 1.0)
         return x; // |x| < eps/2, also keeps -0.0
     return cast(T)(logFallback(u) * (xd / (u - 1.0))); // x/(u-1) ~ 1 first: no overflow for huge x
+}
+
+// exp(x) - 1, accurate for tiny x.
+//   u = exp(x); if u == 1 then expm1(x) == x, otherwise
+//   expm1(x) = (u - 1) * x / log(u)   -- the rounding error of u cancels in the ratio.
+// Computed in double (float is exact in it, real gets double accuracy).
+T expm1Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x)            return x;
+    if (x == T.infinity)   return x;
+    if (x == -T.infinity)  return -1;
+    if (x > 50)            return expFallback(x);     // e^-50 < eps: expm1 == exp (also handles overflow)
+    if (x < -50)           return -1;
+
+    double xd = x;
+    double u  = expFallback(xd);
+    if (u == 1.0)  return x;                          // |x| < eps/2, also keeps -0.0
+    double d = u - 1.0;
+    if (d == -1.0) return -1;
+    return cast(T)(d * (xd / logFallback(u)));        // x/log(u) ~ 1 first: no intermediate overflow
 }
 
 ///////////////////////////////////////
@@ -697,32 +718,87 @@ T modfFallback(T)(T x, ref T iptr) pure nothrow @nogc
 T sinhFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    if (isNaN(x)) return x;
-    if (isInfinity(x)) return x;
-    T ex = expFallback(x);
-    T exn = 1.0 / ex; // exp(-x)
-    return (ex - exn) * 0.5;
+    enum T sat  = 0.4 * T.mant_dig + 1;                       // ~22 for double: e^-2x is negligible
+    enum T lnMax = T.max_exp * LN2;                           // log(T.max)
+    enum T ovf   = (T.max_exp + 1) * LN2;                     // log(2 * T.max): beyond it, overflow
+    enum T tiny  = 1 / cast(T)(1UL << (T.mant_dig / 2 + 2));
+
+    if (x != x || x == T.infinity || x == -T.infinity) return x;
+    T ax = fabsFallback(x);
+    T h  = signbitFallback(x) ? -0.5 : 0.5;
+
+    if (ax < sat)
+    {
+        if (ax < tiny) return x;                              // sinh(x) == x, keeps -0.0
+        T t = expm1Fallback(ax);
+        if (ax < 1)
+            return h * (2 * t - t * t / (t + 1));
+        return h * (t + t / (t + 1));
+    }
+    if (ax < lnMax) return h * expFallback(ax);
+    if (ax <= ovf)                                            // exp(ax) overflows but sinh(ax) doesn't
+    {
+        T w = expFallback(0.5 * ax);
+        return (h * w) * w;
+    }
+    return signbitFallback(x) ? -T.infinity : T.infinity;
 }
 
 T coshFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    if (isNaN(x)) return x;
-    if (isInfinity(x)) return T.infinity;
-    T ex = expFallback(x);
-    T exn = 1.0 / ex;
-    return (ex + exn) * 0.5;
+    enum T sat   = 0.4 * T.mant_dig + 1;
+    enum T lnMax = T.max_exp * LN2;
+    enum T ovf   = (T.max_exp + 1) * LN2;
+    enum T tiny  = 1 / cast(T)(1UL << (T.mant_dig / 2 + 2));
+
+    if (x != x) return x;
+    if (x == T.infinity || x == -T.infinity) return T.infinity;
+    T ax = fabsFallback(x);
+
+    if (ax < 0.5 * LN2)                                       // avoid cancellation in e^x + e^-x
+    {
+        if (ax < tiny) return 1;                              // 1 + x^2/2 rounds to 1
+        T t = expm1Fallback(ax);
+        return 1 + (t * t) / (2 * (1 + t));
+    }
+    if (ax < sat)
+    {
+        T t = expFallback(ax);
+        return 0.5 * t + 0.5 / t;
+    }
+    if (ax < lnMax) return 0.5 * expFallback(ax);
+    if (ax <= ovf)
+    {
+        T w = expFallback(0.5 * ax);
+        return (0.5 * w) * w;
+    }
+    return T.infinity;
 }
 
 T tanhFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    if (isNaN(x)) return x;
-    if (isInfinity(x))
-        return (x > 0) ? cast(T)1.0 : cast(T)-1.0;
-    T two = 2.0;
-    T ex2 = expFallback(-two * x);
-    return (1.0 - ex2) / (1.0 + ex2);
+    enum T sat  = 0.4 * T.mant_dig + 1;                       // tanh(x) == +-1 beyond this
+    enum T tiny = 1 / cast(T)(1UL << (T.mant_dig / 2 + 2));
+
+    if (x != x) return x;
+    T ax = fabsFallback(x);
+    if (ax >= sat)  return copysignFallback(cast(T) 1, x);    // also +-inf, before any exp() call
+    if (ax < tiny)  return x;                                 // tanh(x) == x, keeps -0.0
+
+    T z;
+    if (ax >= 1)
+    {
+        T t = expm1Fallback(2 * ax);
+        z = 1 - 2 / (t + 2);
+    }
+    else
+    {
+        T t = expm1Fallback(-2 * ax);                         // no cancellation for small ax
+        z = -t / (t + 2);
+    }
+    return signbitFallback(x) ? -z : z;
 }
 
 T asinhFallback(T)(T x) pure nothrow @nogc
