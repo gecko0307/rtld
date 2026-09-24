@@ -118,9 +118,6 @@ T fabsFallback(T)(T x) pure nothrow @nogc
     return b.value;
 }
 
-//alias fmaxFallback = max2;
-//alias fminFallback = min2;
-
 T fmaxFallback(T)(T x, T y) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
