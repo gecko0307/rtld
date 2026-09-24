@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2024-2026 Timur Gafarov
+Copyright (c) 2026 Timur Gafarov
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -25,75 +25,12 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
+module rtld.core._version;
 
-module rtld.core.linker;
+import rtld.core.linker;
 
-/// Structure that represents library version number.
-struct LibraryVersion
-{
-    uint major;
-    uint minor;
-    uint patch;
-}
+/// RTLD version number as a read-only structure.
+immutable LibraryVersion rtldVersion = LibraryVersion(0, 4, 0);
 
-alias SharedLib = void*;
-
-version(Windows)
-{
-    import rtld.sys.windows.windows;
-}
-else version(Posix)
-{
-    import rtld.sys.posix.dlfcn;
-}
-
-pragma(inline, true)
-SharedLib openLibrary(string filename) @nogc nothrow
-{
-    version(Windows)
-    {
-        return LoadLibraryA(filename.ptr);
-    }
-    else version(Posix)
-    {
-        return dlopen(filename.ptr, RTLD_LAZY);
-    }
-    else
-    {
-        return null;
-    }
-}
-
-pragma(inline, true)
-void* getFunctionPointer(SharedLib lib, string name) @nogc nothrow
-{
-    version(Windows)
-    {
-        return cast(void*)GetProcAddress(lib, name.ptr);
-    }
-    else version(Posix)
-    {
-        return dlsym(lib, name.ptr);
-    }
-    else
-    {
-        return null;
-    }
-}
-
-pragma(inline, true)
-bool closeLibrary(SharedLib lib) nothrow @nogc
-{
-    version(Windows)
-    {
-        return FreeLibrary(lib) != 0;
-    }
-    else version(Posix)
-    {
-        return dlclose(lib) == 0;
-    }
-    else
-    {
-        return false;
-    }
-}
+/// RTLD version number as a read-only string.
+immutable string rtldVersionString = "0.4.0";

@@ -29,6 +29,7 @@ module rtld.core;
 
 public
 {
+    import rtld.core._version;
     import rtld.core.atomic;
     import rtld.core.file;
     import rtld.core.io;
