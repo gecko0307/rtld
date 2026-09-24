@@ -42,5 +42,4 @@ public
     import rtld.core.thread;
     import rtld.core.traits;
     import rtld.core.tuple;
-    import rtld.core.window;
 }

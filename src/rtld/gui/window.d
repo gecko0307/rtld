@@ -29,7 +29,7 @@ DEALINGS IN THE SOFTWARE.
 /**
  * A simple cross-platform window abstraction.
  */
-module rtld.core.window;
+module rtld.gui.window;
 
 version(Windows)
 {
