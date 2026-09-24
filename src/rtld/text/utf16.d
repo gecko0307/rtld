@@ -160,7 +160,7 @@ struct UTF16LEDecoder
 unittest
 {
     wstring input = "Жå∑";
-    auto decoder = UTF16LEDecoder(cast(string)input);
+    auto decoder = UTF16LEDecoder(input);
     assert(decoder.decodeNext() == 'Ж');
     assert(decoder.decodeNext() == 'å');
     assert(decoder.decodeNext() == '∑');
@@ -216,8 +216,8 @@ struct UTF16LEEncoder
 unittest
 {
     UTF16LEEncoder enc;
-    char[4] buffer;
-    size_t numBytes = enc.encode('Ж', buffer);
+    ubyte[4] buffer;
+    size_t numBytes = enc.encode(cast(uint)'Ж', buffer);
     assert(numBytes == 2);
     assert(cast(wchar[])(buffer[0..numBytes]) == [0x0416]);
 }

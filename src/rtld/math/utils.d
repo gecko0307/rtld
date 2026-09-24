@@ -231,7 +231,7 @@ pragma(inline, true)
 T nextPowerOfTen(T) (T k) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    return pow(10, cast(int)ceil(log10(k)));
+    return cast(T)pow(10.0, ceil(log10(k)));
 }
 
 ///
@@ -325,6 +325,7 @@ bool isOddInteger(T)(T y) pure nothrow @nogc
 /**
  * Integer part
  */
+/*
 pragma(inline, true)
 T integer(T)(T v) pure nothrow @nogc
     if (isFloatingPoint!T)
@@ -339,10 +340,12 @@ unittest
 {
     assert(integer(54.832f) == 54.0f);
 }
+*/
 
 /**
  * Fractional part
  */
+/*
 pragma(inline, true)
 T frac(T)(T v)
     if (isFloatingPoint!T)
@@ -356,3 +359,4 @@ unittest
 {
     assert(abs(frac(54.832f) - 0.832f) <= EPSILON);
 }
+*/

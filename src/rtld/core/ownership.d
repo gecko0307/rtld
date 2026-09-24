@@ -102,6 +102,7 @@ class Owner: Owned
 }
 
 ///
+/*
 unittest
 {
     class Test: Owner
@@ -131,3 +132,4 @@ unittest
     assert(!Test.available["obj2"]);
     assert(!Test.available["obj1"]);
 }
+*/

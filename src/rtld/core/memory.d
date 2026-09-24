@@ -140,6 +140,8 @@ else
         atomicStore(cast(shared(bool)*)&profilerLock, false);
     }
     
+    // TODO: printMemoryLog
+    
     ///
     void printMemoryLeaks() @nogc nothrow
     {
