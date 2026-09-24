@@ -28,7 +28,6 @@ int main()
     memoryProfilerEnabled = true;
     
     // Dynamic array
-    version(None)
     {
         int[] arr = New!(int[])(10);
         printFmtLn("arr = {0}", arr);
@@ -36,7 +35,6 @@ int main()
     }
     
     // Class instancing
-    version(None)
     {
         Foo foo = New!Foo(99);
         printFmtLn("foo.x = {0}", foo.x);
@@ -44,7 +42,6 @@ int main()
     }
     
     // Structure instancing
-    version(None)
     {
         Bar* bar = New!Bar(5);
         printFmtLn("bar = {0}", *bar);
@@ -52,7 +49,6 @@ int main()
     }
     
     // Arena
-    version(None)
     {
         Arena arena = New!Arena(1024);
         
@@ -69,7 +65,6 @@ int main()
     }
     
     // Literals
-    version(None)
     {
         Bar[] arr1 = [Bar(1, 2), Bar(5, 6), Bar(0, 0)];
         printLn(arr1);

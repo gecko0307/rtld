@@ -139,6 +139,24 @@ T fminFallback(T)(T x, T y) pure nothrow @nogc
     return x < y ? x : y;
 }
 
+T log1pFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x)            return x; // NaN
+    if (x < -1)            return T.nan;
+    if (x == -1)           return -T.infinity;
+    if (x == T.infinity)   return x;
+
+    immutable double xd = x;
+    if (xd == double.infinity) // real beyond double's range: 1 + x == x
+        return logFallback(x);
+
+    immutable double u = 1.0 + xd;
+    if (u == 1.0)
+        return x; // |x| < eps/2, also keeps -0.0
+    return cast(T)(logFallback(u) * (xd / (u - 1.0))); // x/(u-1) ~ 1 first: no overflow for huge x
+}
+
 ///////////////////////////////////////
 
 version(FreeStanding)
@@ -155,15 +173,6 @@ version(X86_64)
 
 //import rtld.math.trigtables;
 
-/*
-pragma(inline, true)
-T truncFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return cast(long)x;
-}
-*/
-
 T truncFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
@@ -175,16 +184,6 @@ T truncFallback(T)(T x) pure nothrow @nogc
     return copysignFallback(r, x); // keeps -0.0, e.g. trunc(-0.5) == -0.0
 }
 
-/*
-pragma(inline, true)
-T floorFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    long intPart = cast(long)x;
-    return (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
-}
-*/
-
 T floorFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
@@ -192,35 +191,12 @@ T floorFallback(T)(T x) pure nothrow @nogc
     return (x < r) ? r - 1 : r; // floor(-0.5) == -1, floor(-0.0) == -0.0
 }
 
-/*
-pragma(inline, true)
-T ceilFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    long intPart = cast(long)x;
-    T xtrunc = (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
-    return (xtrunc < x)? xtrunc + 1 : x;
-}
-*/
-
 T ceilFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     immutable T r = truncFallback(x);
     return (x > r) ? r + 1 : r; // ceil(-0.5) == -0.0
 }
-
-/*
-pragma(inline, true)
-T roundFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (x < 0.0)
-        return cast(long)(x - 0.5);
-    else
-        return cast(long)(x + 0.5);
-}
-*/
 
 // Half away from zero.
 T roundFallback(T)(T x) pure nothrow @nogc
@@ -233,23 +209,6 @@ T roundFallback(T)(T x) pure nothrow @nogc
     if (ax - t >= 0.5) t += 1; // ax - t is exact
     return copysignFallback(t, x);
 }
-
-/*
-/// Rounds to the nearest integer.
-T rintFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    T r = floorFallback(x + 0.5);
-    if (x - floorFallback(x) == 0.5)
-    {
-        if (r % 2.0 != 0.0)
-        {
-            r -= 1.0;
-        }
-    }
-    return r;
-}
-*/
 
 // Current rounding mode (round-half-even by default).
 T rintFallback(T)(T x) pure nothrow @nogc
@@ -813,24 +772,6 @@ T powFallback(T)(T x, T y) pure nothrow @nogc
     }
 
     return (x < 0 && yOdd) ? -r : r;
-}
-
-T log1pFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (x != x)            return x; // NaN
-    if (x < -1)            return T.nan;
-    if (x == -1)           return -T.infinity;
-    if (x == T.infinity)   return x;
-
-    immutable double xd = x;
-    if (xd == double.infinity) // real beyond double's range: 1 + x == x
-        return logFallback(x);
-
-    immutable double u = 1.0 + xd;
-    if (u == 1.0)
-        return x; // |x| < eps/2, also keeps -0.0
-    return cast(T)(logFallback(u) * (xd / (u - 1.0))); // x/(u-1) ~ 1 first: no overflow for huge x
 }
 
 T hypotFallback(T)(T x, T y) pure nothrow @nogc
