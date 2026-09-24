@@ -1,5 +1,6 @@
 RTLD 0.5.0 - TBD
 ----------------
+* `rtld.gui`
 * `rtld.text.utils`
 
 RTLD 0.4.0 - 24 Sep, 2026

@@ -15,7 +15,7 @@ RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64
 - `rtld.core` - cross-platform core API, including file I/O, memory allocator, dynamic library loader, threads, atomics, etc.
 - `rtld.container` - generic data containers (WIP), array sorting
 - `rtld.gui` - cross-platform window management
-- `rtld.gl`- OpenGL ES 2/3
+- `rtld.gl` - OpenGL ES 2/3
 - `rtld.hash` - non-cryptographic hash functions
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - elementary math functions. Provides bare metal fallbacks with performance comparable to std.math
