@@ -1,3 +1,7 @@
+RTLD 0.5.0 - TBD
+----------------
+* `rtld.text.utils`
+
 RTLD 0.4.0 - 24 Sep, 2026
 -------------------------
 * Many runtime fixes
