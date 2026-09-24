@@ -32,7 +32,7 @@ By default RTLD can be used with Phobos as a normal source package:
 
 ```json
 "dependencies": {
-    "rtld": "~>0.3.0"
+    "rtld": "~>0.4.0"
 }
 ```
 
@@ -40,8 +40,8 @@ If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rt
 
 ```json
 "dependencies": {
-    "rtld": "~>0.3.0",
-    "rtld:runtime": "~>0.3.0"
+    "rtld": "~>0.4.0",
+    "rtld:runtime": "~>0.4.0"
 },
 "subConfigurations": {
     "rtld": "no-druntime"
