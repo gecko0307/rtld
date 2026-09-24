@@ -265,7 +265,7 @@ T cbrtFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     enum OneOverThree = 1.0 / 3.0;
-    if (x < 0) return -cbrt(-x);
+    if (x < 0) return -cbrtFallback(-x);
     if (isNaN(x) || isInfinity(x)) return x;
     if (x == 0) return 0;
     T a = sqrtFallback(x);
@@ -432,14 +432,14 @@ pragma(inline, true)
 T asinFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    return atan2Fallback(x, sqrt(1.0 - x * x));
+    return atan2Fallback(x, sqrtFallback(1.0 - x * x));
 }
 
 pragma(inline, true)
 T acosFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    return atan2Fallback(sqrt(1.0 - x * x), x);
+    return atan2Fallback(sqrtFallback(1.0 - x * x), x);
 }
 
 T atanFallback(T)(T x) pure nothrow @nogc
@@ -482,11 +482,11 @@ T atan2Fallback(T)(T y, T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     if (x > 0)
-        return atan(y / x);
+        return atanFallback(y / x);
     else if (x < 0 && y >= 0)
-        return atan(y / x) + PI;
+        return atanFallback(y / x) + PI;
     else if (x < 0 && y < 0)
-        return atan(y / x) - PI;
+        return atanFallback(y / x) - PI;
     else if (x == 0 && y > 0)
         return HALFPI;
     else if (x == 0 && y < 0)
@@ -606,7 +606,7 @@ T logFallback(T)(T x) pure nothrow @nogc
     if (x == T.infinity)   return x;
 
     int e;
-    immutable double m = splitLog(x, e);
+    double m = splitLog(x, e);
     return cast(T)logKernel(m - 1.0, e);
 }
 
@@ -866,7 +866,7 @@ T asinhFallback(T)(T x) pure nothrow @nogc
     enum T tiny = 1 / big;
 
     if (x != x || x == T.infinity || x == -T.infinity) return x;
-    immutable T ax = fabsFallback(x);
+    T ax = fabsFallback(x);
     if (ax < tiny) return x;                                  // asinh(x) == x, keeps -0.0
 
     T w;
@@ -876,7 +876,7 @@ T asinhFallback(T)(T x) pure nothrow @nogc
         w = logFallback(2 * ax + 1 / (sqrtFallback(x * x + 1) + ax));
     else
     {
-        immutable T t = x * x;                                // no cancellation for small |x|
+        T t = x * x;                                          // no cancellation for small |x|
         w = log1pFallback(ax + t / (1 + sqrtFallback(1 + t)));
     }
     return signbitFallback(x) ? -w : w;                       // odd function

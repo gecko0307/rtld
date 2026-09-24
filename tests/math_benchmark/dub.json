@@ -1,0 +1,28 @@
+{
+    "name": "test",
+    "description": "RTLD math benchmarks",
+    "homepage": "",
+    "license": "BSL-1.0",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "dependencies": {
+        "rtld": { "path": "../.." }
+    },
+    
+    "importPaths": [
+        "src"
+    ],
+    
+    "sourcePaths": [
+        "src"
+    ],
+    
+    "buildRequirements": [
+        "allowWarnings"
+    ],
+    
+    "versions": ["UseFreeStandingMath"],
+    
+    "lflags-linux": ["-rpath=$$ORIGIN"]
+}
