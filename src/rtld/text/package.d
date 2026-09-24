@@ -32,6 +32,8 @@ public
 {
     import rtld.text.common;
     import rtld.text.encodings;
+    import rtld.text.format;
+    import rtld.text.str;
     import rtld.text.utf8;
     import rtld.text.utf16;
 }

@@ -127,6 +127,12 @@ struct Array(T, size_t chunkSize = 32)
     }
 
     ///
+    @property size_t capacity() const nothrow @nogc
+    {
+        return dynamicStorage.length;
+    }
+
+    ///
     unittest
     {
         Array!int arr;
@@ -579,6 +585,17 @@ struct Array(T, size_t chunkSize = 32)
     size_t length() const nothrow @nogc
     {
         return pos;
+    }
+    
+    void length(size_t len) nothrow @nogc
+    {
+        size_t cap = capacity;
+        if (cap == 0)
+            return;
+        else if (len > cap)
+            pos = cast(uint)(cap - 1);
+        else
+            pos = cast(uint)(len);
     }
 
     alias opDollar = length;

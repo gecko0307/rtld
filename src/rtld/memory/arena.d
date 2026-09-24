@@ -39,7 +39,7 @@ import rtld.core.memory;
 import rtld.core.ownership;
 import rtld.core.traits;
 import rtld.container.array;
-import rtld.libc.string;
+import rtld.libc.stdio;
 
 /// Represents a single memory block within the `Arena`.
 struct ArenaBuffer
@@ -470,7 +470,7 @@ string cat(Args...)(Arena arena, Args args)
  * Returns:
  *   The formatted string stored in the arena.
  */
-string format(T...)(Arena arena, string fmt, T args)
+string format(A...)(Arena arena, string fmt, A args)
 {
     // Estimate the required size
     size_t size = 256;

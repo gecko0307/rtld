@@ -183,7 +183,7 @@ struct File
         }
     }
     
-    FileIOResult read(ubyte[] buffer) scope @nogc nothrow
+    FileIOResult read(void[] buffer) scope @nogc nothrow
     {
         if (this.handle == InvalidHandle)
             return FileIOResult.Failure(cast(int)-1);
@@ -217,7 +217,7 @@ struct File
         }
     }
     
-    FileIOResult write(const(ubyte)[] buffer) scope @nogc nothrow
+    FileIOResult write(const(void)[] buffer) scope @nogc nothrow
     {
         if (this.handle == InvalidHandle)
             return FileIOResult.Failure(cast(int)-1);

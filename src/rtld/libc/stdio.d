@@ -152,12 +152,15 @@ else
         int scanf(const(char)* format, ...);
         
         /// Writes a formatted string into a char array (memory-safe)
-        int snprintf(char* str, size_t size, const(char)* format, ...);
+        int snprintf(char* str, size_t size, const(char)* fmt, ...);
+        
+        ///
+        //int vsnprintf(char* str, size_t n, const(char)* fmt, va_list arg);
         
         /// Writes a formatted string into a char array.
-        int sprintf(char* buf, const(char)* format, ...);
+        int sprintf(char* buf, const(char)* fmt, ...);
         
         /// Reads a formatted string from a char array and writes it into a number of memory locations.
-        int sscanf(const(char)* buf, const(char)* format, ...);
+        int sscanf(const(char)* buf, const(char)* fmt, ...);
     }
 }

@@ -46,6 +46,15 @@ template Unqual(T: const U, U)
 }
 
 ///
+template isInteger(T)
+{
+    enum isInteger = is(Unqual!T == int) || is(Unqual!T == uint) ||
+                     is(Unqual!T == byte) || is(Unqual!T == ubyte) ||
+                     is(Unqual!T == short) || is(Unqual!T == ushort) ||
+                     is(Unqual!T == long) || is(Unqual!T == ulong);
+}
+
+///
 template isFloatingPoint(T)
 {
     enum isFloatingPoint = is(Unqual!T == float) || is(Unqual!T == double) || is(Unqual!T == real);
@@ -76,6 +85,18 @@ template isArray(T)
 }
 
 ///
+template isString(T)
+{
+    enum isString = is(T == string) || is(T == char[]) || is(T: const(char)[]);
+}
+
+///
+template isWString(T)
+{
+    enum isWString = is(T == wstring) || is(T == wchar[]) || is(T == const(wchar)[]);
+}
+
+///
 template ElementType(T)
 {
     static if (is(T == U[], U))
@@ -86,6 +107,12 @@ template ElementType(T)
 template isClass(T)
 {
     enum isClass = is(T == class);
+}
+
+///
+template isInterface(T)
+{
+    enum isInterface = is(T == interface);
 }
 
 ///
