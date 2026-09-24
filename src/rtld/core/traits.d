@@ -38,6 +38,12 @@ template Unqual(T)
 }
 
 ///
+template isFloatingPoint(T)
+{
+    enum isFloatingPoint = is(T == float) || is(T == double) || is(T == real);
+}
+
+///
 template isStaticArray(T)
 {
     enum isStaticArray = is(T == U[N], U, size_t N);

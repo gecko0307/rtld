@@ -40,9 +40,13 @@ DEALINGS IN THE SOFTWARE.
  * - hypot, modf,
  * - sinh, cosh, tanh
  * - asinh, acosh, atanh
+ * - rint, nearbyint
+ * - fma
+ * - signbit, copysign
  */
 module rtld.math.fallback;
 
+import rtld.core.traits;
 import rtld.math.constants;
 import rtld.math.utils;
 
@@ -59,7 +63,12 @@ alias fminFallback = min2;
 
 ///////////////////////////////////////
 
-version(FreeStanding):
+version(FreeStanding)
+    version = UseFreeStandingMath;
+else version(unittest)
+    version = UseFreeStandingMath;
+
+version(UseFreeStandingMath):
 
 version(X86)
     version = UseX87Math;
@@ -70,12 +79,14 @@ import rtld.math.trigtables;
 
 pragma(inline, true)
 T truncFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return cast(long)x;
 }
 
 pragma(inline, true)
 T floorFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     long intPart = cast(long)x;
     return (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
@@ -83,6 +94,7 @@ T floorFallback(T)(T x) pure nothrow @nogc
 
 pragma(inline, true)
 T ceilFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     long intPart = cast(long)x;
     T xtrunc = (x < 0 && x != cast(T)intPart) ? intPart - 1 : intPart;
@@ -91,6 +103,7 @@ T ceilFallback(T)(T x) pure nothrow @nogc
 
 pragma(inline, true)
 T roundFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (x < 0.0)
         return cast(long)(x - 0.5);
@@ -99,6 +112,7 @@ T roundFallback(T)(T x) pure nothrow @nogc
 }
 
 T sqrtFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     version(UseX87Math)
     {
@@ -137,6 +151,7 @@ T sqrtFallback(T)(T x) pure nothrow @nogc
 }
 
 T cbrtFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     enum OneOverThree = 1.0 / 3.0;
     if (x < 0) return -cbrt(-x);
@@ -153,6 +168,7 @@ T cbrtFallback(T)(T x) pure nothrow @nogc
 }
 
 T sinFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     T xfmod = x - floorFallback(x * INVTWOPI) * TWOPI;
     x = (0 > xfmod)? 0 : xfmod;
@@ -177,6 +193,7 @@ T sinFallback(T)(T x) pure nothrow @nogc
 }
 
 T cosFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     T xfmod = x - floorFallback(x * INVTWOPI) * TWOPI;
     x = (0 > xfmod)? 0 : xfmod;
@@ -199,23 +216,27 @@ T cosFallback(T)(T x) pure nothrow @nogc
 
 pragma(inline, true)
 T tanFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return sinFallback(x) / cosFallback(x);
 }
 
 pragma(inline, true)
 T asinFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return atan2Fallback(x, sqrt(1.0 - x * x));
 }
 
 pragma(inline, true)
 T acosFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return atan2Fallback(sqrt(1.0 - x * x), x);
 }
 
 T atanFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     // Implementation from Algol 60
     const T        R1 =  0x1.9310cfe85307cp+3;
@@ -251,6 +272,7 @@ T atanFallback(T)(T x) pure nothrow @nogc
 }
 
 T atan2Fallback(T)(T y, T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (x > 0)
         return atan(y / x);
@@ -268,6 +290,7 @@ T atan2Fallback(T)(T y, T x) pure nothrow @nogc
 
 // exp: range reduction + Taylor on reduced interval
 T expFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x))
@@ -314,11 +337,13 @@ T expFallback(T)(T x) pure nothrow @nogc
 // exp2: 2^x = e^(x ln2)
 pragma(inline, true)
 T exp2Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return expFallback(x * cast(T)LN2);
 }
 
 T logFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (x <= 0) return T.nan;
     if (isInfinity(x)) return T.infinity;
@@ -352,23 +377,27 @@ T logFallback(T)(T x) pure nothrow @nogc
 
 pragma(inline, true)
 T log2Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
-    return logFallback(x) * cast(T)INV_LN2;
+    return logFallback(x) * cast(T)INVLN2;
 }
 
 pragma(inline, true)
 T log10Fallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return logFallback(x) * cast(T)LOG10E;
 }
 
 pragma(inline, true)
 T powFallback(T)(T x, T y) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     return x ^^ y;
 }
 
 T hypotFallback(T)(T x, T y) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (x == 0) return 0;
     x = abs(x);
@@ -383,6 +412,7 @@ T hypotFallback(T)(T x, T y) pure nothrow @nogc
 
 pragma(inline, true)
 T modfFallback(T)(T x, ref T iptr) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     T i = trunc(x);
     iptr = i;
@@ -390,6 +420,7 @@ T modfFallback(T)(T x, ref T iptr) pure nothrow @nogc
 }
 
 T sinhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return x;
@@ -399,6 +430,7 @@ T sinhFallback(T)(T x) pure nothrow @nogc
 }
 
 T coshFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return T.infinity;
@@ -408,6 +440,7 @@ T coshFallback(T)(T x) pure nothrow @nogc
 }
 
 T tanhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x))
@@ -418,6 +451,7 @@ T tanhFallback(T)(T x) pure nothrow @nogc
 }
 
 T asinhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return (x > 0) ? T.infinity : -T.infinity;
@@ -426,6 +460,7 @@ T asinhFallback(T)(T x) pure nothrow @nogc
 }
 
 T acoshFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (x < 1.0) return T.nan;
@@ -435,10 +470,101 @@ T acoshFallback(T)(T x) pure nothrow @nogc
 }
 
 T atanhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (x == 1.0) return T.infinity;
     if (x == -1.0) return -T.infinity;
     if (abs(x) > 1.0) return T.nan;
     return 0.5 * log((1.0 + x) / (1.0 - x));
+}
+
+/// Rounds to the nearest integer.
+T rintFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    T r = floorFallback(x + 0.5);
+    if (x - floorFallback(x) == 0.5)
+    {
+        if (r % 2.0 != 0.0)
+        {
+            r -= 1.0;
+        }
+    }
+    return r;
+}
+
+alias nearbyintFallback = rintFallback;
+
+pragma(inline, true)
+T fmaFallback(T)(T x, T y, T z) pure nothrow @nogc
+{
+    return (x * y) + z;
+}
+
+private template SignLayout(T)
+{
+    static if (T.mant_dig == 24)            // IEEE binary32
+    {
+        alias Word = uint;
+        enum size_t index = 0;
+        enum Word mask = 0x8000_0000;
+    }
+    else static if (T.mant_dig == 53)       // IEEE binary64
+    {
+        alias Word = ulong;
+        enum size_t index = 0;
+        enum Word mask = 0x8000_0000_0000_0000;
+    }
+    else static if (T.mant_dig == 64)       // x87 80-bit extended (always little-endian)
+    {
+        alias Word = ushort;                // sign lives in the top bit of bytes 8..9
+        enum size_t index = 4;
+        enum Word mask = 0x8000;
+    }
+    else static if (T.mant_dig == 113)      // IEEE binary128
+    {
+        alias Word = ushort;
+        version (LittleEndian) enum size_t index = 7;
+        else                   enum size_t index = 0;
+        enum Word mask = 0x8000;
+    }
+    else
+        static assert(0, "copysign: unsupported floating-point format " ~ T.stringof);
+}
+
+private union Bits(T)
+{
+    T value;
+    SignLayout!T.Word[T.sizeof / SignLayout!T.Word.sizeof] word;
+}
+
+bool signbitFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (__ctfe)
+        return x < 0 || (x == 0 && 1 / x < 0);   // NaN sign isn't observable at CTFE
+
+    alias L = SignLayout!T;
+    Bits!T b;
+    b.value = x;
+    return (b.word[L.index] & L.mask) != 0;
+}
+
+T copysignFallback(T, R)(T mag, R sgn) pure nothrow @nogc
+    if (isFloatingPoint!T && isFloatingPoint!R)
+{
+    immutable(bool) neg = signbitFallback(sgn);
+
+    if (__ctfe)
+        return signbitFallback(mag) == neg ? mag : -mag;
+
+    alias L = SignLayout!T;
+    Bits!T b;
+    b.value = mag;
+    if (neg)
+        b.word[L.index] |= L.mask;
+    else
+        b.word[L.index] &= cast(L.Word) ~L.mask;
+    return b.value;
 }

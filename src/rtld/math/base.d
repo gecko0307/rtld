@@ -102,8 +102,8 @@ version(UseFreeStandingMath)
     alias floor = floorFallback;
     alias round = roundFallback;
     alias trunc = truncFallback;
-    // TODO: rint
-    // TODO: nearbyint
+    alias rint = rintFallback;
+    alias nearbyint = nearbyintFallback;
     alias pow = powFallback;
     alias exp = expFallback;
     alias exp2 = exp2Fallback;
@@ -112,8 +112,8 @@ version(UseFreeStandingMath)
     alias log10 = log10Fallback;
     alias fmax = fmaxFallback;
     alias fmin = fminFallback;
-    // TODO: fma
-    // TODO: copysign
+    alias fma = fmaFallback;
+    alias copysign = copysignFallback;
 }
 else version(LDC)
 {
@@ -267,7 +267,7 @@ else
 
 version(Phobos)
 {
-    // Use std.math functions
+    // Additional std.math functions
     
     alias poly        = std.math.poly;
     alias nextPow2    = std.math.nextPow2;
@@ -310,5 +310,7 @@ version(Phobos)
 }
 else
 {
-    // TODO: fallbacks
+    alias signbit     = signbitFallback;
+    
+    // TODO
 }
