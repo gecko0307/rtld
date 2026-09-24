@@ -310,6 +310,7 @@ version(Phobos)
 }
 else
 {
+    alias log1p       = log1pFallback;
     alias signbit     = signbitFallback;
     
     // TODO

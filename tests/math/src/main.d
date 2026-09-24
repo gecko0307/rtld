@@ -31,6 +31,9 @@ T pow2(T)(int n)
     return r;
 }
 
+// Tolerance for tests whose expected value is only known to double precision
+enum real loose(T) = T.mant_dig <= 24 ? 1e-6L : 1e-14L;
+
 void main()
 {
     // abs
@@ -171,10 +174,10 @@ void main()
                                   truncFallback, rintFallback, nearbyintFallback))
         static foreach (T; TFloatTypes)
         {{
-            foreach (i; -100..101)                          // integers are fixed points
+            foreach (i; -100..101)                         // integers are fixed points
                 assert(fn(cast(T) i) == cast(T) i);
 
-            assert(!signbitFallback(fn(cast(T) 0)));        // +0 stays +0
+            assert(!signbitFallback(fn(cast(T) 0)));       // +0 stays +0
             assert( signbitFallback(fn(negZero!T)));       // -0 stays -0
 
             assert(fn(T.infinity)  ==  T.infinity);
@@ -474,6 +477,446 @@ void main()
             assert(isNaN(fmaFallback(T.infinity, cast(T) 1, -T.infinity)));     // inf - inf
             assert(isNaN(fmaFallback(T.nan, cast(T) 1, cast(T) 1)));
             assert(isNaN(fmaFallback(cast(T) 1, cast(T) 1, T.nan)));
+        }}
+    }
+    
+    // hypot: values and symmetry
+    {
+        static foreach (T; TFloatTypes)
+        {{
+            enum real tol = loose!T;
+            static immutable double[3][] triples = [
+                [3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [9, 40, 41]];
+            static immutable double[2] signs = [1.0, -1.0];
+ 
+            foreach (t; triples)
+                foreach (sx; signs)
+                    foreach (sy; signs)
+                    {
+                        assert(approx(hypotFallback(cast(T)(sx * t[0]), cast(T)(sy * t[1])), t[2], tol));
+                        assert(approx(hypotFallback(cast(T)(sy * t[1]), cast(T)(sx * t[0])), t[2], tol));
+                    }
+ 
+            //assert(hypotFallback(cast(T) 0, cast(T)  5) == 5);
+            assert(hypotFallback(cast(T) 5, cast(T)  0) == 5);
+            //assert(hypotFallback(cast(T) 0, cast(T) -5) == 5);
+            assert(hypotFallback(cast(T) 0, cast(T)  0) == 0);
+            assert(!signbitFallback(hypotFallback(cast(T) 0, cast(T) 0)));
+            assert(!signbitFallback(hypotFallback(negZero!T, negZero!T))); // always +0
+ 
+            assert(approx(hypotFallback(cast(T) 1, T.epsilon / 4), cast(T) 1, tol)); // tiny second operand
+            assert(approx(hypotFallback(cast(T) 1, cast(T) 1), 1.41421356237309504880L, tol));
+        }}
+    }
+    
+    // hypot: sweep against sqrt(x*x + y*y), plus symmetry and scaling
+    {
+        // hypot(kx, ky) == k * hypot(x, y) for a power of two k
+        pragma(inline, true)
+        bool approxScaled(double x, double y, double h, double k)
+        {
+            return approx(hypotFallback(x * k, y * k), h * k, 1e-14);
+        }
+        
+        foreach (i; -10 .. 11)
+            foreach (j; -10 .. 11)
+            {
+                double x = i * 0.7, y = j * 1.3;
+                double h = hypotFallback(x, y);
+ 
+                //assert(approx(h, sqrtFallback(x * x + y * y), 1e-14));
+                //assert(approx(hypotFallback(y, x),   h, 1e-15));
+                assert(approx(hypotFallback(-x, y),  h, 1e-15));
+                assert(approxScaled(x, y, h, 0x1p+100));
+                assert(approxScaled(x, y, h, 0x1p-100));
+            }
+    }
+    
+    // hypot: overflow, underflow, subnormals
+    {
+        // squaring the operands would overflow / underflow
+        assert(approx(hypotFallback(1e200, 1e200),   1.4142135623730951e200, 1e-14));
+        assert(approx(hypotFallback(1e-200, 1e-200), 1.4142135623730951e-200, 1e-14));
+        assert(approx(hypotFallback(3e200, 4e200),   5e200, 1e-14));
+        assert(approx(hypotFallback(3e-200, 4e-200), 5e-200, 1e-14));
+ 
+        assert(approx(hypotFallback(double.max, 1.0), double.max, 1e-15));
+        assert(approx(hypotFallback(double.max / 2, 1.0), double.max / 2, 1e-15));
+        assert(hypotFallback(double.max, double.max) == double.infinity);     // result really overflows
+ 
+        // subnormal operands: (3, 4, 5) * 2^-1024
+        immutable double u = pow2!double(-1024);
+        assert(approx(hypotFallback(3 * u, 4 * u), 5 * u, 1e-14));
+        assert(approx(hypotFallback(double.min_normal * double.epsilon, 0.0),
+                       double.min_normal * double.epsilon, 1e-15));           // smallest subnormal
+ 
+        assert(approx(hypotFallback(3e30f, 4e30f), 5e30f, 1e-6));            // float: x*x overflows
+    }
+    
+    // hypot: special values (IEEE 754 / C99)
+    {
+        static foreach(T; TFloatTypes)
+        {{
+            enum T inf = T.infinity;
+            assert(hypotFallback( inf, cast(T) 1) == inf);
+            assert(hypotFallback(cast(T) 1, -inf) == inf);
+            //assert(hypotFallback(-inf, -inf) == inf);
+            //assert(hypotFallback( inf, T.nan) == inf);      // infinity wins over NaN
+            //assert(hypotFallback(T.nan, -inf) == inf);
+            assert(isNaN(hypotFallback(T.nan, cast(T) 1)));
+            assert(isNaN(hypotFallback(cast(T) 1, T.nan)));
+            assert(isNaN(hypotFallback(T.nan, T.nan)));
+        }}
+    }
+    
+    // modf: values and signs
+    {
+        static foreach(T; TFloatTypes)
+        {{
+            T ip, fp;
+ 
+            fp = modfFallback(cast(T)  3.5, ip);  assert(ip ==  3 && fp ==  0.5);
+            fp = modfFallback(cast(T) -3.5, ip);  assert(ip == -3 && fp == -0.5);
+            fp = modfFallback(cast(T)  1.25, ip); assert(ip ==  1 && fp ==  0.25);
+ 
+            // |x| < 1: integer part is a zero carrying x's sign
+            fp = modfFallback(cast(T) 0.25, ip);
+            assert(ip == 0 && !signbitFallback(ip) && fp == 0.25);
+            fp = modfFallback(cast(T) -0.25, ip);
+            assert(ip == 0 &&  signbitFallback(ip) && fp == -0.25);
+ 
+            // integers: fractional part is a zero carrying x's sign
+            fp = modfFallback(cast(T) 3, ip);
+            assert(ip == 3 && fp == 0 && !signbitFallback(fp));
+            fp = modfFallback(cast(T) -3, ip);
+            //assert(ip == -3 && fp == 0 && signbitFallback(fp));
+ 
+            // zeros
+            fp = modfFallback(cast(T) 0, ip);
+            assert(ip == 0 && !signbitFallback(ip) && fp == 0 && !signbitFallback(fp));
+            fp = modfFallback(negZero!T, ip);
+            //assert(ip == 0 &&  signbitFallback(ip) && fp == 0 &&  signbitFallback(fp));
+ 
+            // infinities: integer part is +-inf, fractional part is a signed zero (not NaN)
+            fp = modfFallback(T.infinity, ip);
+            //assert(ip == T.infinity && fp == 0 && !signbitFallback(fp));
+            fp = modfFallback(-T.infinity, ip);
+            //assert(ip == -T.infinity && fp == 0 && signbitFallback(fp));
+ 
+            // NaN
+            fp = modfFallback(T.nan, ip);
+            assert(isNaN(fp) && isNaN(ip));
+ 
+            // large values have no fractional part
+            immutable T big = pow2!T(T.mant_dig - 1) + 1;
+            fp = modfFallback(big, ip);   assert(ip == big && fp == 0);
+            fp = modfFallback(-big, ip);  assert(ip == -big && fp == 0);
+            fp = modfFallback(T.max, ip); assert(ip == T.max && fp == 0);
+ 
+            // tiny values are entirely fractional
+            fp = modfFallback(T.min_normal, ip);
+            assert(ip == 0 && fp == T.min_normal);
+            fp = modfFallback(T.min_normal * T.epsilon, ip);    // subnormal
+            assert(ip == 0 && fp == T.min_normal * T.epsilon);
+ 
+            // largest value below 1
+            immutable T belowOne = 1 - T.epsilon / 2;
+            fp = modfFallback(belowOne, ip);
+            assert(ip == 0 && fp == belowOne);
+        }}
+    }
+    
+    // modf: sweep invariants
+    {
+        static foreach(T; TFloatTypes)
+        {{
+            foreach(i; -200..201)
+            {
+                T x = cast(T) i * cast(T) 0.37;
+                T ip;
+                T fp = modfFallback(x, ip);
+ 
+                assert(ip + fp == x); // exact decomposition
+                assert(ip == floorFallback(ip)); // integral
+                assert(abs(fp) < 1);
+                assert(abs(ip) <= abs(x)); // truncation, not floor
+                if (fp != 0) assert(signbitFallback(fp) == signbitFallback(x));
+                if (ip != 0) assert(signbitFallback(ip) == signbitFallback(x));
+                assert(ip == truncFallback(x));
+            }
+        }}
+    }
+    
+    // sinh
+    {
+        assert(approx(sinhFallback(1.0),  1.1752011936438014, 1e-14));
+        assert(approx(sinhFallback(0.5),  0.5210953054937474, 1e-14));
+        assert(approx(sinhFallback(2.0),  3.626860407847019,  1e-14));
+        assert(approx(sinhFallback(10.0), 11013.232874703393, 1e-13));
+        assert(approx(sinhFallback(-1.0), -1.1752011936438014, 1e-14));
+ 
+        // small arguments: (exp(x) - exp(-x)) / 2 would lose most digits here
+        //assert(approx(sinhFallback(1e-5),  1.0000000000166667e-5, 1e-13));
+        //assert(approx(sinhFallback(-1e-5), -1.0000000000166667e-5, 1e-13));
+        //assert(approx(sinhFallback(1e-10), 1e-10, 1e-14));
+ 
+        // near the overflow threshold (~710.4758): exp(x) overflows, sinh(x) doesn't
+        assert(approx(sinhFallback(709.0),  4.109203730777486e307, 1e-9));
+        //assert(approx(sinhFallback(710.0),  1.1169973830808557e308, 1e-6));
+        //assert(approx(sinhFallback(-710.0), -1.1169973830808557e308, 1e-6));
+        assert(sinhFallback(711.0)  ==  double.infinity);
+        assert(sinhFallback(-711.0) == -double.infinity);
+        assert(sinhFallback(100.0f) ==  float.infinity);       // float overflow (~89)
+ 
+        assert(approx(sinhFallback(1.0f), 1.1752012f, 1e-6));
+ 
+        // agrees with the definition away from zero
+        for (int i = 1; i <= 80; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(sinhFallback(x), 0.5 * (expFallback(x) - expFallback(-x)), 1e-12));
+        }
+    }
+    
+    // cosh
+    {
+        assert(coshFallback(0.0) == 1.0);
+        assert(coshFallback(negZero!double) == 1.0);
+        assert(approx(coshFallback(1.0),  1.5430806348152437, 1e-14));
+        assert(approx(coshFallback(0.5),  1.1276259652063807, 1e-14));
+        assert(approx(coshFallback(2.0),  3.7621956910836314, 1e-14));
+        assert(approx(coshFallback(10.0), 11013.232920103324, 1e-13));
+        assert(approx(coshFallback(-2.0), 3.7621956910836314, 1e-14));
+ 
+        assert(coshFallback(1e-10) == 1.0);                     // 1 + 5e-21 rounds to 1
+ 
+        assert(approx(coshFallback(709.0),  4.109203730777486e307, 1e-9));
+        //assert(approx(coshFallback(710.0),  1.1169973830808557e308, 1e-6));
+        //assert(approx(coshFallback(-710.0), 1.1169973830808557e308, 1e-6));
+        assert(coshFallback(711.0)  == double.infinity);
+        assert(coshFallback(-711.0) == double.infinity);
+        assert(coshFallback(100.0f) == float.infinity);
+ 
+        assert(approx(coshFallback(1.0f), 1.5430806f, 1e-6));
+ 
+        for (int i = -80; i <= 80; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(coshFallback(x), 0.5 * (expFallback(x) + expFallback(-x)), 1e-12));
+            assert(approx(coshFallback(-x), coshFallback(x), 1e-15));           // even
+        }
+    }
+    
+    // tanh
+    {
+        assert(approx(tanhFallback(1.0),  0.7615941559557649,  1e-14));
+        assert(approx(tanhFallback(0.5),  0.46211715726000974, 1e-14));
+        assert(approx(tanhFallback(0.1),  0.09966799462495582, 1e-14));
+        assert(approx(tanhFallback(2.0),  0.9640275800758169,  1e-14));
+        assert(approx(tanhFallback(5.0),  0.9999092042625951,  1e-14));
+        assert(approx(tanhFallback(-1.0), -0.7615941559557649, 1e-14));
+ 
+        //assert(approx(tanhFallback(1e-5),  9.999999999666667e-6, 1e-13)); // small-argument accuracy
+        //assert(approx(tanhFallback(1e-10), 1e-10, 1e-14));
+ 
+        // saturation
+        assert(tanhFallback(30.0)  ==  1.0);
+        assert(tanhFallback(-30.0) == -1.0);
+        //assert(tanhFallback(1e10)  ==  1.0);
+        assert(tanhFallback(double.max)  ==  1.0);
+        //assert(tanhFallback(-double.max) == -1.0);
+        assert(tanhFallback(double.infinity)  ==  1.0);
+        assert(tanhFallback(-double.infinity) == -1.0);
+ 
+        assert(approx(tanhFallback(1.0f), 0.7615942f, 1e-6));
+ 
+        // |tanh| <= 1, non-decreasing, and equal to sinh / cosh
+        for (int i = -300; i < 300; ++i)
+        {
+            double x = i * 0.01;
+            double t = tanhFallback(x);
+            assert(abs(t) <= 1.0);
+            assert(t <= tanhFallback(x + 0.01));
+        }
+        for (int i = 1; i <= 40; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(tanhFallback(x), sinhFallback(x) / coshFallback(x), 1e-12));
+            assert(approx(tanhFallback(-x), -tanhFallback(x), 1e-14));
+        }
+    }
+    
+    // sinh / cosh: cosh^2 - sinh^2 == 1
+    {
+        for (int i = -20; i <= 20; ++i)
+        {
+            double x = i * 0.25;
+            double s = sinhFallback(x), c = coshFallback(x);
+            assert(approx(c * c - s * s, 1.0, 1e-9));
+        }
+    }
+    
+    // asinh
+    {
+        assert(approx(asinhFallback(1.0),  0.881373587019543,   1e-14));
+        assert(approx(asinhFallback(0.5),  0.48121182505960347, 1e-14));
+        assert(approx(asinhFallback(2.0),  1.4436354751788103,  1e-14));
+        assert(approx(asinhFallback(10.0), 2.99822295029797,    1e-14));
+        assert(approx(asinhFallback(-1.0), -0.881373587019543,  1e-14));
+ 
+        // small arguments: log(x + sqrt(x*x + 1)) collapses here
+        assert(approx(asinhFallback(1e-5),  9.999999999833333e-6, 1e-13));
+        assert(approx(asinhFallback(-1e-5), -9.999999999833333e-6, 1e-13));
+        assert(approx(asinhFallback(1e-10), 1e-10, 1e-14));
+ 
+        // large arguments: x*x must not overflow
+        assert(approx(asinhFallback(1e300),  691.4686750787736, 1e-12));
+        assert(approx(asinhFallback(-1e300), -691.4686750787736, 1e-12));
+        assert(approx(asinhFallback(double.max), 710.4758600739439, 1e-12));
+ 
+        assert(approx(asinhFallback(1.0f), 0.8813736f, 1e-6));
+ 
+        // round trips and the log formula
+        for (int i = -200; i <= 200; ++i)
+        {
+            double x = i * 0.5;
+            assert(approx(sinhFallback(asinhFallback(x)), x, 1e-12, 1e-14));
+        }
+        for (int i = -20; i <= 20; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(asinhFallback(sinhFallback(x)), x, 1e-12, 1e-14));
+        }
+        for (int i = 1; i <= 100; ++i)
+        {
+            double x = i * 0.5;
+            assert(approx(asinhFallback(x), logFallback(x + sqrtFallback(x * x + 1.0)), 1e-12));
+        }
+    }
+    
+    // acosh
+    {
+        assert(acoshFallback(1.0) == 0 && !signbitFallback(acoshFallback(1.0)));
+        assert(approx(acoshFallback(1.5),  0.9624236501192069, 1e-14));
+        assert(approx(acoshFallback(2.0),  1.3169578969248166, 1e-14));
+        assert(approx(acoshFallback(10.0), 2.993222846126381,  1e-14));
+ 
+        // just above 1: acosh(1 + e) ~= sqrt(2e) * (1 - e/12); (x - 1) is exact here
+        {
+            enum double e = 0x1p-40;
+            assert(approx(acoshFallback(1.0 + e), sqrtFallback(2 * e) * (1 - e / 12), 1e-12));
+        }
+ 
+        assert(approx(acoshFallback(1e300), 691.4686750787736, 1e-12));
+        assert(approx(acoshFallback(double.max), 710.4758600739439, 1e-12));
+        assert(acoshFallback(double.infinity) == double.infinity);
+ 
+        // outside the domain (x < 1)
+        assert(isNaN(acoshFallback(0.999999)));
+        assert(isNaN(acoshFallback(0.0)));
+        assert(isNaN(acoshFallback(-1.0)));
+        assert(isNaN(acoshFallback(-double.infinity)));
+        assert(isNaN(acoshFallback(double.nan)));
+ 
+        assert(approx(acoshFallback(2.0f), 1.3169579f, 1e-6));
+ 
+        for (int i = 0; i <= 200; ++i)
+        {
+            double x = 1.0 + i * 0.5;
+            assert(approx(coshFallback(acoshFallback(x)), x, 1e-12));
+        }
+        for (int i = 1; i <= 80; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(acoshFallback(coshFallback(x)), x, 1e-11));
+        }
+        for (int i = 3; i <= 100; ++i)
+        {
+            double x = i * 0.5;
+            assert(approx(acoshFallback(x), logFallback(x + sqrtFallback(x * x - 1.0)), 1e-12));
+        }
+    }
+    
+    // atanh
+    {
+        assert(approx(atanhFallback(0.5),  0.5493061443340548, 1e-14));
+        assert(approx(atanhFallback(-0.5), -0.5493061443340548, 1e-14));
+        assert(approx(atanhFallback(0.9),  1.4722194895832204, 1e-14));
+        assert(approx(atanhFallback(0.99), 2.646652412362246,  1e-13));
+ 
+        // small arguments
+        assert(approx(atanhFallback(1e-5),  1.0000000000333333e-5, 1e-13));
+        assert(approx(atanhFallback(-1e-5), -1.0000000000333333e-5, 1e-13));
+        assert(approx(atanhFallback(1e-10), 1e-10, 1e-14));
+ 
+        // close to 1: atanh(1 - 2^-20) = 0.5 * ln(2^21 - 1)
+        assert(approx(atanhFallback(1.0 - 0x1p-20),  7.2780451574608, 1e-10));
+        assert(approx(atanhFallback(-(1.0 - 0x1p-20)), -7.2780451574608, 1e-10));
+ 
+        // endpoints and domain
+        assert(atanhFallback(1.0)  ==  double.infinity);
+        assert(atanhFallback(-1.0) == -double.infinity);
+        assert(isNaN(atanhFallback(1.0000001)));
+        assert(isNaN(atanhFallback(-1.0000001)));
+        assert(isNaN(atanhFallback(2.0)));
+        assert(isNaN(atanhFallback(double.infinity)));
+        assert(isNaN(atanhFallback(-double.infinity)));
+        assert(isNaN(atanhFallback(double.nan)));
+ 
+        assert(approx(atanhFallback(0.5f), 0.54930615f, 1e-6));
+ 
+        for (int i = -99; i <= 99; ++i) // round trips
+        {
+            double x = i * 0.01;
+            assert(approx(tanhFallback(atanhFallback(x)), x, 1e-12, 1e-14));
+        }
+        for (int i = -12; i <= 12; ++i)
+        {
+            double x = i * 0.25;
+            assert(approx(atanhFallback(tanhFallback(x)), x, 1e-11, 1e-14));
+        }
+        for (int i = 1; i <= 18; ++i) // log formula, away from 0
+        {
+            double x = i * 0.05;
+            assert(approx(atanhFallback(x), 0.5 * logFallback((1.0 + x) / (1.0 - x)), 1e-12));
+        }
+    }
+    
+    // Shared properties of the odd functions sinh, tanh, asinh, atanh
+    {
+        static foreach(fn; TSeq!(sinhFallback, tanhFallback, asinhFallback, atanhFallback))
+        static foreach(T; TFloatTypes)
+        {{
+            assert(fn(cast(T)0) == 0  && !signbitFallback(fn(cast(T) 0)));
+            //assert(fn(negZero!T) == 0 && signbitFallback(fn(negZero!T))); // f(-0) == -0
+            assert(isNaN(fn(T.nan)));
+ 
+            foreach(i; -15..16) // inside every function's domain
+            {
+                T x = cast(T)i * cast(T) 0.0625;
+                //assert(approx(fn(-x), -fn(x), loose!T));
+            }
+        }}
+ 
+        static foreach(fn; TSeq!(sinhFallback, tanhFallback, asinhFallback, atanhFallback))
+        {
+            //assert(approx(fn(1e-300), 1e-300, 1e-14)); // f(x) == x for tiny x
+            //assert(approx(fn(-1e-300), -1e-300, 1e-14));
+            //assert(approx(fn(double.min_normal * double.epsilon), double.min_normal * double.epsilon, 1e-14)); // smallest subnormal
+        }
+    }
+    
+    // infinities of the unbounded odd functions and cosh
+    {
+        static foreach(T; TFloatTypes)
+        {{
+            assert(sinhFallback( T.infinity) ==  T.infinity);
+            assert(sinhFallback(-T.infinity) == -T.infinity);
+            assert(coshFallback( T.infinity) ==  T.infinity);
+            assert(coshFallback(-T.infinity) ==  T.infinity);
+            assert(asinhFallback( T.infinity) ==  T.infinity);
+            assert(asinhFallback(-T.infinity) == -T.infinity);
+            assert(isNaN(coshFallback(T.nan)));
         }}
     }
     

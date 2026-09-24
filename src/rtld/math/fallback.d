@@ -815,18 +815,36 @@ T powFallback(T)(T x, T y) pure nothrow @nogc
     return (x < 0 && yOdd) ? -r : r;
 }
 
+T log1pFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    if (x != x)            return x; // NaN
+    if (x < -1)            return T.nan;
+    if (x == -1)           return -T.infinity;
+    if (x == T.infinity)   return x;
+
+    immutable double xd = x;
+    if (xd == double.infinity) // real beyond double's range: 1 + x == x
+        return logFallback(x);
+
+    immutable double u = 1.0 + xd;
+    if (u == 1.0)
+        return x; // |x| < eps/2, also keeps -0.0
+    return cast(T)(logFallback(u) * (xd / (u - 1.0))); // x/(u-1) ~ 1 first: no overflow for huge x
+}
+
 T hypotFallback(T)(T x, T y) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     if (x == 0) return 0;
-    x = abs(x);
-    y = abs(y);
+    x = fabsFallback(x);
+    y = fabsFallback(y);
     if (x < y)
     {
         auto t = x; x = y; y = t;
     }
     T r = y / x;
-    return x * sqrt(1.0 + r * r);
+    return x * sqrtFallback(1.0 + r * r);
 }
 
 pragma(inline, true)
@@ -843,7 +861,7 @@ T sinhFallback(T)(T x) pure nothrow @nogc
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return x;
-    T ex = exp(x);
+    T ex = expFallback(x);
     T exn = 1.0 / ex; // exp(-x)
     return (ex - exn) * 0.5;
 }
@@ -853,7 +871,7 @@ T coshFallback(T)(T x) pure nothrow @nogc
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return T.infinity;
-    T ex = exp(x);
+    T ex = expFallback(x);
     T exn = 1.0 / ex;
     return (ex + exn) * 0.5;
 }
@@ -865,17 +883,18 @@ T tanhFallback(T)(T x) pure nothrow @nogc
     if (isInfinity(x))
         return (x > 0) ? cast(T)1.0 : cast(T)-1.0;
     T two = 2.0;
-    T ex2 = exp(-two * x);
+    T ex2 = expFallback(-two * x);
     return (1.0 - ex2) / (1.0 + ex2);
 }
 
+/*
 T asinhFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     if (isNaN(x)) return x;
     if (isInfinity(x)) return (x > 0) ? T.infinity : -T.infinity;
-    T s = sqrt(x * x + 1.0);
-    return log(x + s);
+    T s = sqrtFallback(x * x + 1.0);
+    return logFallback(x + s);
 }
 
 T acoshFallback(T)(T x) pure nothrow @nogc
@@ -884,8 +903,8 @@ T acoshFallback(T)(T x) pure nothrow @nogc
     if (isNaN(x)) return x;
     if (x < 1.0) return T.nan;
     if (isInfinity(x)) return T.infinity;
-    T s = sqrt((x - 1.0) * (x + 1.0));
-    return log(x + s);
+    T s = sqrtFallback((x - 1.0) * (x + 1.0));
+    return logFallback(x + s);
 }
 
 T atanhFallback(T)(T x) pure nothrow @nogc
@@ -894,8 +913,71 @@ T atanhFallback(T)(T x) pure nothrow @nogc
     if (isNaN(x)) return x;
     if (x == 1.0) return T.infinity;
     if (x == -1.0) return -T.infinity;
-    if (abs(x) > 1.0) return T.nan;
-    return 0.5 * log((1.0 + x) / (1.0 - x));
+    if (absFallback(x) > 1.0) return T.nan;
+    return 0.5 * logFallback((1.0 + x) / (1.0 - x));
+}
+*/
+
+T asinhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T big  = cast(T)(1UL << (T.mant_dig / 2 + 2));       // 2^28 for double
+    enum T tiny = 1 / big;
+
+    if (x != x || x == T.infinity || x == -T.infinity) return x;
+    immutable T ax = fabsFallback(x);
+    if (ax < tiny) return x;                                  // asinh(x) == x, keeps -0.0
+
+    T w;
+    if (ax > big)                                             // log(2|x|), x*x would overflow
+        w = logFallback(ax) + LN2;
+    else if (ax > 2)
+        w = logFallback(2 * ax + 1 / (sqrtFallback(x * x + 1) + ax));
+    else
+    {
+        immutable T t = x * x;                                // no cancellation for small |x|
+        w = log1pFallback(ax + t / (1 + sqrtFallback(1 + t)));
+    }
+    return signbitFallback(x) ? -w : w;                       // odd function
+}
+
+T acoshFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T big = cast(T)(1UL << (T.mant_dig / 2 + 2));
+
+    if (x != x) return x;
+    if (x < 1)  return T.nan;
+    if (x >= big)
+        return (x == T.infinity) ? x : logFallback(x) + LN2;
+    if (x == 1) return 0;
+    if (x > 2)
+        return logFallback(2 * x - 1 / (x + sqrtFallback(x * x - 1)));
+
+    immutable T t = x - 1;                                    // exact; keeps precision near 1
+    return log1pFallback(t + sqrtFallback(2 * t + t * t));
+}
+
+T atanhFallback(T)(T x) pure nothrow @nogc
+    if (isFloatingPoint!T)
+{
+    enum T tiny = 1 / cast(T)(1UL << (T.mant_dig / 2 + 2));
+
+    if (x != x) return x;
+    immutable T ax = fabsFallback(x);
+    if (ax > 1)  return T.nan;
+    if (ax == 1) return copysignFallback(T.infinity, x);
+    if (ax < tiny) return x;                                  // keeps -0.0
+
+    T t;
+    if (ax < 0.5)
+    {
+        immutable T y = ax + ax;
+        t = 0.5 * log1pFallback(y + y * ax / (1 - ax));
+    }
+    else
+        t = 0.5 * log1pFallback((ax + ax) / (1 - ax));        // 1 - ax is exact for ax >= 0.5
+    return signbitFallback(x) ? -t : t;
 }
 
 pragma(inline, true)

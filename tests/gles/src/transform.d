@@ -2,7 +2,7 @@ module transform;
 
 import rtld.math;
 
-float[16] orthoMatrix(float l, float r, float b, float t, float n, float f) @nogc nothrow
+float[16] orthoMatrix(float l, float r, float b, float t, float n, float f) pure @nogc nothrow
 {
     float[16] res;
 
@@ -34,7 +34,7 @@ float[16] orthoMatrix(float l, float r, float b, float t, float n, float f) @nog
 }
 
 
-float[16] translationMatrix(float x, float y, float z) @nogc nothrow
+float[16] translationMatrix(float x, float y, float z) pure @nogc nothrow
 {
     float[16] res;
     
@@ -61,7 +61,7 @@ float[16] translationMatrix(float x, float y, float z) @nogc nothrow
     return res;
 }
 
-float[16] rotationMatrix(uint rotaxis, float theta) @nogc nothrow
+float[16] rotationMatrix(uint rotaxis, float theta) pure @nogc nothrow
 {
     float[16] res;
 
@@ -106,7 +106,7 @@ float[16] rotationMatrix(uint rotaxis, float theta) @nogc nothrow
     return res;
 }
 
-float[16] scaleMatrix(float x, float y, float z) @nogc nothrow
+float[16] scaleMatrix(float x, float y, float z) pure @nogc nothrow
 {
     float[16] res;
     
@@ -133,7 +133,7 @@ float[16] scaleMatrix(float x, float y, float z) @nogc nothrow
     return res;
 }
 
-float[16] multMatrix(ref float[16] m1, ref float[16] m2) @nogc nothrow
+float[16] multMatrix(ref float[16] m1, ref float[16] m2) pure @nogc nothrow
 {
     float[16] res;
 
