@@ -36,7 +36,7 @@ DEALINGS IN THE SOFTWARE.
  * - sqrt, cbrt
  * - sin, cos, tan
  * - asin, acos, atan, atan2
- * - exp, exp2, log, log2, log10, pow
+ * - exp, exp2, log, log2, log10, log1p, pow
  * - hypot, modf,
  * - sinh, cosh, tanh
  * - asinh, acosh, atanh
@@ -277,55 +277,6 @@ T cbrtFallback(T)(T x) pure nothrow @nogc
     }
     return a;
 }
-
-/++
-T sinFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    T xfmod = x - floorFallback(x * INVTWOPI) * TWOPI;
-    x = (0 > xfmod)? 0 : xfmod;
-    
-    T rsign = 1.0;
-    T adjusted_x = x;
-    if (x < 0) 
-    {
-        adjusted_x = -x;
-        rsign = -1.0;
-    }
-    if (adjusted_x > PI) 
-    {
-        adjusted_x = min2(PI, TWOPI - adjusted_x);
-        rsign = -1.0;
-    }
-    
-    T j = adjusted_x * (cast(T)(sinTable.length - 2) * INVPI);
-    int zero = cast(int)j;
-    T nx = j - zero;
-    return ((1.0 - nx) * sinTable[zero][0] + nx * sinTable[zero + 1][0]) * rsign;
-}
-
-T cosFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    T xfmod = x - floorFallback(x * INVTWOPI) * TWOPI;
-    x = (0 > xfmod)? 0 : xfmod;
-    
-    T adjusted_x = x;
-    if (x < 0) 
-    {
-        adjusted_x = -x;
-    }
-    if (adjusted_x > PI) 
-    {
-        adjusted_x = min2(PI, TWOPI - adjusted_x);
-    }
-     
-    T j = adjusted_x * (cast(T)(cosTable.length - 2) * INVPI);
-    int zero = cast(int)j;
-    T nx = j - zero;
-    return (1.0 - nx) * cosTable[zero][0] + nx * cosTable[zero + 1][0];
-}
-++/
 
 // x = n*pi/2 + (y0 + y1), |y0| <= pi/4. Returns n mod 4.
 // Accurate for |x| < 2^20 * pi/2 (~1.6e6); beyond that you need Payne-Hanek.
@@ -644,55 +595,6 @@ T log10Fallback(T)(T x) pure nothrow @nogc
     return cast(T)(e * log10_2hi + (e * log10_2lo + lm * ivln10));
 }
 
-/*
-T logFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (x <= 0) return T.nan;
-    if (isInfinity(x)) return T.infinity;
-    if (x == 1) return 0;
-
-    // Use range reduction via the identity log(x) = log(a * 2^n) = log(a) + n*log(2)
-    // where 0.5 <= a < 1
-    int n = 0;
-    T a = x;
-
-    // Scale a to [0.5, 1) range
-    while (a >= 2) { a *= 0.5; n++; }
-    while (a < 0.5) { a *= 2; n--; }
-
-    // Use series expansion for log(1+y) where y = a-1
-    // log(1+y) = y - y^2/2 + y^3/3 - y^4/4 + ...
-    T y = a - 1;
-    T y2 = y * y;
-    T sum = y;
-    T term = y;
-
-    // Add terms until contribution becomes negligible
-    for (int i = 2; i <= 12; i++)
-    {
-        term *= -y * (i - 1) / i;
-        sum += term;
-    }
-
-    return sum + cast(T)LN2 * n;
-}
-
-pragma(inline, true)
-T log2Fallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return logFallback(x) * cast(T)INVLN2;
-}
-
-pragma(inline, true)
-T log10Fallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return logFallback(x) * cast(T)LOG10E;
-}
-*/
-
 // x^n for finite x > 0 and integer n >= 1, by square-and-multiply.
 // Pure FP arithmetic (no casts to integers), exact while n < 2^mant_dig.
 private T powSmallInt(T)(T x, T n) pure nothrow @nogc
@@ -827,37 +729,6 @@ T tanhFallback(T)(T x) pure nothrow @nogc
     T ex2 = expFallback(-two * x);
     return (1.0 - ex2) / (1.0 + ex2);
 }
-
-/*
-T asinhFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (isNaN(x)) return x;
-    if (isInfinity(x)) return (x > 0) ? T.infinity : -T.infinity;
-    T s = sqrtFallback(x * x + 1.0);
-    return logFallback(x + s);
-}
-
-T acoshFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (isNaN(x)) return x;
-    if (x < 1.0) return T.nan;
-    if (isInfinity(x)) return T.infinity;
-    T s = sqrtFallback((x - 1.0) * (x + 1.0));
-    return logFallback(x + s);
-}
-
-T atanhFallback(T)(T x) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    if (isNaN(x)) return x;
-    if (x == 1.0) return T.infinity;
-    if (x == -1.0) return -T.infinity;
-    if (absFallback(x) > 1.0) return T.nan;
-    return 0.5 * logFallback((1.0 + x) / (1.0 - x));
-}
-*/
 
 T asinhFallback(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
