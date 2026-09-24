@@ -1,0 +1,35 @@
+{
+    "name": "test",
+    "description": "RTLD lexer test",
+    "homepage": "",
+    "license": "BSL-1.0",
+    "authors": [
+        "Timur Gafarov"
+    ],
+    "dependencies": {
+        "rtld": { "path": "../.." },
+        "rtld:runtime": { "path": "../.." }
+    },
+    "subConfigurations": {
+        "rtld": "no-druntime"
+    },
+    
+    "importPaths": [
+        "src"
+    ],
+    
+    "sourcePaths": [
+        "src"
+    ],
+    
+    "buildRequirements": [
+        "allowWarnings"
+    ],
+    
+    "dflags": [
+        "-defaultlib=",
+        "-debuglib="
+    ],
+    
+    "lflags-linux": ["-rpath=$$ORIGIN"]
+}
