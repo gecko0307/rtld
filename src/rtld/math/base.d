@@ -41,15 +41,26 @@ DEALINGS IN THE SOFTWARE.
 module rtld.math.base;
 
 version(FreeStanding)
+{
     version = UseFreeStandingMath;
+}
+else version(Phobos) {}
+else
+{
+    import rtld.libc.math;
+}
 
 version(LDC)
+{
     import ldc.intrinsics;
+}
 
 version(Phobos)
+{
     import std.math;
-else
-    public import rtld.math.constants;
+}
+
+public import rtld.math.constants;
 
 import rtld.math.fallback;
 
@@ -182,30 +193,26 @@ else
     
     alias abs   = absFallback;
     alias fabs  = fabsFallback;
-    
-    extern(C) pure nothrow @nogc
-    {
-        double sqrt(double x);
-        double sin(double x);
-        double cos(double x);
-        double tan(double x);
-        double ceil(double x);
-        double floor(double x);
-        double round(double x);
-        double trunc(double x);
-        double rint(double x);
-        double nearbyint(double arg);
-        double pow(double x, double y);
-        double exp(double x);
-        double exp2(double x);
-        double log(double x);
-        double log2(double x);
-        double log10(double x);
-        double fmax(double x, double y);
-        double fmin(double x, double y);
-        double fma(double x, double y, double z);
-        double copysign(double x, double y);
-    }
+    alias sqrt = rtld.libc.math.sqrt;
+    alias sin = rtld.libc.math.sin;
+    alias cos = rtld.libc.math.cos;
+    alias tan = rtld.libc.math.tan;
+    alias ceil = rtld.libc.math.ceil;
+    alias floor = rtld.libc.math.floor;
+    alias round = rtld.libc.math.round;
+    alias trunc = rtld.libc.math.trunc;
+    alias rint = rtld.libc.math.rint;
+    alias nearbyint = rtld.libc.math.nearbyint;
+    alias pow = rtld.libc.math.pow;
+    alias exp = rtld.libc.math.exp;
+    alias exp2 = rtld.libc.math.exp2;
+    alias log = rtld.libc.math.log;
+    alias log2 = rtld.libc.math.log2;
+    alias log10 = rtld.libc.math.log10;
+    alias fmax = rtld.libc.math.fmax;
+    alias fmin = rtld.libc.math.fmin;
+    alias fma = rtld.libc.math.fma;
+    alias copysign = rtld.libc.math.copysign;
 }
 
 version(UseFreeStandingMath)
@@ -218,7 +225,7 @@ version(UseFreeStandingMath)
     alias atan = atanFallback;
     alias atan2 = atan2Fallback;
     alias hypot = hypotFallback;
-    // TODO: modf
+    alias modf = modfFallback;
     alias sinh = sinhFallback;
     alias cosh = coshFallback;
     alias tanh = tanhFallback;
@@ -247,22 +254,18 @@ else
 {
     // Use libc functions
     
-    extern(C) nothrow @nogc
-    {
-        double cbrt(double x);
-        double asin(double x);
-        double acos(double x);
-        double atan(double x);
-        double atan2(double y, double x);
-        double hypot(double x, double y);
-        double modf(double x, double* intptr);
-        double sinh(double x);
-        double cosh(double x);
-        double tanh(double x);
-        double asinh(double x);
-        double acosh(double x);
-        double atanh(double x);
-    }
+    alias cbrt = rtld.libc.math.cbrt;
+    alias asin = rtld.libc.math.asin;
+    alias acos = rtld.libc.math.acos;
+    alias atan = rtld.libc.math.atan;
+    alias atan2 = rtld.libc.math.atan2;
+    alias hypot = rtld.libc.math.hypot;
+    alias sinh = rtld.libc.math.sinh;
+    alias cosh = rtld.libc.math.cosh;
+    alias tanh = rtld.libc.math.tanh;
+    alias asinh = rtld.libc.math.asinh;
+    alias acosh = rtld.libc.math.acosh;
+    alias atanh = rtld.libc.math.atanh;
 }
 
 version(Phobos)
@@ -314,5 +317,5 @@ else
     alias log1p       = log1pFallback;
     alias signbit     = signbitFallback;
     
-    // TODO
+    // TODO: implement other functions
 }

@@ -25,14 +25,50 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld.libc;
+module rtld.libc.math;
 
-public
+version(WebAssembly)
 {
-    import rtld.libc.math;
-    import rtld.libc.stdint;
-    import rtld.libc.stdio;
-    import rtld.libc.stdlib;
-    import rtld.libc.string;
-    import rtld.libc.time;
+}
+else version(FreeStanding)
+{
+}
+else
+{
+    extern(C) pure nothrow @nogc
+    {
+        double sqrt(double x);
+        double sin(double x);
+        double cos(double x);
+        double tan(double x);
+        double ceil(double x);
+        double floor(double x);
+        double round(double x);
+        double trunc(double x);
+        double rint(double x);
+        double nearbyint(double arg);
+        double pow(double x, double y);
+        double exp(double x);
+        double exp2(double x);
+        double log(double x);
+        double log2(double x);
+        double log10(double x);
+        double fmax(double x, double y);
+        double fmin(double x, double y);
+        double fma(double x, double y, double z);
+        double copysign(double x, double y);
+        double cbrt(double x);
+        double asin(double x);
+        double acos(double x);
+        double atan(double x);
+        double atan2(double y, double x);
+        double hypot(double x, double y);
+        double modf(double x, double* intptr);
+        double sinh(double x);
+        double cosh(double x);
+        double tanh(double x);
+        double asinh(double x);
+        double acosh(double x);
+        double atanh(double x);
+    }
 }
