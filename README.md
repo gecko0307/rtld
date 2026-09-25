@@ -18,7 +18,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 - `rtld.container` - generic data containers (WIP), array sorting
 - `rtld.gui` - cross-platform window management
 - `rtld.gl` - OpenGL ES 2/3
-- `rtld.hash` - non-cryptographic hash functions
+- `rtld.hash` - fast non-cryptographic hash functions, including [xxHash64](https://github.com/cyan4973/xxhash)
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - elementary math functions. Provides bare metal fallbacks with performance comparable to `std.math`
 - `rtld.memory` - allocator interface and its implementations; arena allocator
