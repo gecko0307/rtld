@@ -22,7 +22,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 - `rtld.libc` - libc binding (WIP)
 - `rtld.math` - elementary math functions. Provides bare metal fallbacks with performance comparable to `std.math`
 - `rtld.memory` - allocator interface and its implementations; arena allocator
-- `rtld.random` - platform-independent non-cryptographic RNG based on Permuted Congruential Generator
+- `rtld.random` - platform-independent non-cryptographic RNG based on [Permuted Congruential Generator](http://www.pcg-random.org/index.html)
 - `rtld.sys.windows` - WinAPI binding (WIP)
 - `rtld.sys.posix` - POSIX binding (WIP)
 - `rtld.sys.linux` - Linux kernel API and subsystems binding (WIP)
