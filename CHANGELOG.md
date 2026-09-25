@@ -6,6 +6,7 @@ RTLD 0.5.0 - TBD
 * `rtld.text.ascii`
 * `rtld.text.utils`
 * Improve formatted printer
+* New math functions: `modf`, `wrapAngle`, `shortestAngleDelta`
 
 RTLD 0.4.0 - 24 Sep, 2026
 -------------------------
