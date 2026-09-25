@@ -1,5 +1,12 @@
-RTLD 0.5.0 - TBD
+RTLD 0.6.0 - TBD
 ----------------
+* **rtld.hash**
+  * New module `rtld.hash.xxhash32`
+* **rtld.math**
+  * `rtld.math.fallback` unittests.
+
+RTLD 0.5.0 - 25 Sep, 2026
+-------------------------
 * **rtld.core**
   * New module `rtld.core.compound`
   * Improve formatted printing in `rtld.core.io`
