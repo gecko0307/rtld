@@ -243,6 +243,7 @@ version(Phobos)
     alias atan = std.math.atan;
     alias atan2 = std.math.atan2;
     alias hypot = std.math.hypot;
+    alias modf = std.math.modf;
     alias sinh = std.math.sinh;
     alias cosh = std.math.cosh;
     alias tanh = std.math.tanh;
@@ -260,6 +261,17 @@ else
     alias atan = rtld.libc.math.atan;
     alias atan2 = rtld.libc.math.atan2;
     alias hypot = rtld.libc.math.hypot;
+    
+    pragma(inline, true)
+    T modf(T)(T x, ref T iptr) pure nothrow @nogc
+        if (isFloatingPoint!T)
+    {
+        double i;
+        T res = modf(x, &i);
+        iptr = i;
+        return res;
+    }
+    
     alias sinh = rtld.libc.math.sinh;
     alias cosh = rtld.libc.math.cosh;
     alias tanh = rtld.libc.math.tanh;

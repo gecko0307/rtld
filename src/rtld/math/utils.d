@@ -325,13 +325,12 @@ bool isOddInteger(T)(T y) pure nothrow @nogc
 /**
  * Integer part
  */
-/*
 pragma(inline, true)
-T integer(T)(T v) pure nothrow @nogc
+T integer(T)(T v) nothrow @nogc
     if (isFloatingPoint!T)
 {
-    T ipart;
-    modf(v, &ipart);
+    real ipart;
+    modf(v, ipart);
     return ipart;
 }
 
@@ -340,17 +339,15 @@ unittest
 {
     assert(integer(54.832f) == 54.0f);
 }
-*/
 
 /**
  * Fractional part
  */
-/*
 pragma(inline, true)
-T frac(T)(T v)
+T frac(T)(T v) nothrow @nogc
     if (isFloatingPoint!T)
 {
-    T ipart;
+    real ipart;
     return modf(v, ipart);
 }
 
@@ -359,4 +356,3 @@ unittest
 {
     assert(abs(frac(54.832f) - 0.832f) <= EPSILON);
 }
-*/
