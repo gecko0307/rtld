@@ -27,6 +27,8 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.libc.stdlib;
 
+import rtld.libc.stdint;
+
 enum NULL = null;
 enum EXIT_SUCCESS = 0;
 enum EXIT_FAILURE = 1;
@@ -53,6 +55,16 @@ else
 {
     extern(C) nothrow @nogc
     {
+        version(Windows)
+        {
+            int* _errno();
+            alias __errno_location = _errno;
+        }
+        version(Posix)
+        {
+            int* __errno_location();
+        }
+        
         int abs(int i);
         int atexit(void function());
         double atof(const(char)* s);
@@ -87,10 +99,12 @@ else
         void srand(uint seed);
         int _rand_r(void* reent);
         void _srand_r(void* reent, uint seed);
+        float strtof(const(char)* str, char** tail);
         double strtod(const(char)* str, char** tail);
         float strtodf(const(char)* str, char** tail);
         double _strtod_r(void* reent, const(char)* str, char** tail);
-        long strtol(const(char)* s, char** ptr, int base);
+        c_long strtol(const(char)* s, char** ptr, int base);
+        long strtoll(const(char)* s, char** ptr, int base);
         long _strtol_r(void* reent, const(char)* s, char** ptr, int base);
         ulong strtoul(const(char)* s, char** ptr, int base);
         ulong _strtoul_r(void* reent, const(char)* s, char** ptr, int base);

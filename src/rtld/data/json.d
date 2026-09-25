@@ -40,6 +40,7 @@ import rtld.core.file;
 import rtld.core.memory;
 import rtld.core.ownership;
 import rtld.core.compound;
+import rtld.core.conv;
 import rtld.container.array;
 import rtld.container.hashmap;
 import rtld.hash.xxhash64;
@@ -48,7 +49,6 @@ import rtld.text.utf8;
 import rtld.text.lexer;
 import rtld.text.str;
 import rtld.text.format;
-import rtld.libc.stdlib;
 
 ///
 class JSONLexer
@@ -262,14 +262,6 @@ alias JSONResult = Compound!(bool, String);
 enum JSONError
 {
     EOI = JSONResult(false, String("unexpected end of input"))
-}
-
-///
-bool parseDouble(string s, ref double v)
-{
-    char* end;
-    v = strtod(s.ptr, &end);
-    return end == s.ptr + s.length;
 }
 
 /// JSON document

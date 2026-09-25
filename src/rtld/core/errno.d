@@ -25,56 +25,29 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
+module rtld.core.errno;
 
-public
-{
-    import rtld.core;
-    import rtld.container;
-    import rtld.data;
-    import rtld.gl;
-    import rtld.gui;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.memory;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
-}
+import rtld.libc.stdlib;
 
-void rtldInit() nothrow @nogc
+enum ERANGE = 34;
+// TODO: other error codes
+
+private __gshared int staticZero = 0;
+
+__gshared int* errno;
+
+void init() @nogc nothrow
 {
-    version(FreeStanding)
+    errno = &staticZero;
+    version(WebAssembly)
+    {
+    }
+    else version(FreeStanding)
     {
     }
     else
     {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-    
-        rtld.core.errno.init();
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
-}
-
-version(Phobos)
-{
-    static this()
-    {
-        rtldInit();
+        errno = __errno_location();
+        *errno = 0;
     }
 }
