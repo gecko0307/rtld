@@ -1,7 +1,8 @@
 module main;
 
 import std.stdio;
-import std.algorithm: max, map;
+import std.algorithm: max, map, cartesianProduct;
+import std.typecons: Tuple;
 import std.range: iota, isInputRange;
 import std.math: abs;
 import std.math.operations: nextUp;
@@ -42,14 +43,14 @@ enum string COLOR_RESET = "\033[0m";
 enum string COLOR_GREEN = "\033[32m";
 enum string COLOR_RED   = "\033[31m";
 
-enum ULP_TOLERANCE = 5;
+enum double DOUBLE_DENORM_MIN = 0x0.0000000000001p-1022;
+
+enum double ULP_TOLERANCE = 5;
 
 // alias F1 - reference function
 // alias F2 - tested function
 void testUnary(alias F1, alias F2, R)(string funcName, R testPoints)
 {
-    enum double DOUBLE_DENORM_MIN = 0x0.0000000000001p-1022;
-    
     double max_ulp = 0.0;
     int exact_matches = 0;
     size_t total_steps = 0;
@@ -113,6 +114,74 @@ void testUnary(alias F1, alias F2, R)(string funcName, R testPoints)
         writefln("%sFail%s\n", COLOR_RED, COLOR_RESET);
 }
 
+void testBinary(alias F1, alias F2, R1, R2)(string funcName, R1 rangeX, R2 rangeY)
+{
+    double max_ulp = 0.0;
+    int exact_matches = 0;
+    size_t total_steps = 0;
+    
+    double worst_x = 0.0, worst_y = 0.0;
+    double worst_r1 = 0.0, worst_r2 = 0.0;
+
+    foreach (pair; cartesianProduct(rangeX, rangeY))
+    {
+        double x = pair[0];
+        double y = pair[1];
+        
+        total_steps++;
+        double r1 = F1(x, y);
+        double r2 = F2(x, y);
+        
+        if (r1 == r2)
+        {
+            exact_matches++;
+        }
+        else
+        {
+            double abs_err = abs(r1 - r2);
+            double ulp_err = 0.0;
+            
+            if (abs(r1) > 1e-15)
+                ulp_err = abs_err / ulp(r1);
+            else if (abs_err > 1e-16)
+                ulp_err = abs_err / DOUBLE_DENORM_MIN;
+
+            if (ulp_err > max_ulp)
+            {
+                max_ulp = ulp_err;
+                worst_x = x;
+                worst_y = y;
+                worst_r1 = r1;
+                worst_r2 = r2;
+            }
+        }
+    }
+
+    enum string COLOR_RESET = "\033[0m";
+    enum string COLOR_GREEN = "\033[32m";
+    enum string COLOR_RED   = "\033[31m";
+
+    writeln(funcName, ":");
+    writefln("Pairs tested:  %d", total_steps);
+    if (total_steps > 0)
+    {
+        writefln("Exact matches: %d from %d (%.1f%%)", exact_matches, total_steps, (cast(double)exact_matches / total_steps) * 100.0);
+    }
+    writefln("Max error:     %.2f ULP", max_ulp);
+    
+    if (max_ulp > 5.0) // Наш новый порог прохождения
+    {
+        writefln("  Worst case at x = %.6f, y = %.6f", worst_x, worst_y);
+        writefln("  reference: %.16g", worst_r1);
+        writefln("  rtldmath:  %.16g", worst_r2);
+        writefln("%sFail%s\n", COLOR_RED, COLOR_RESET);
+    }
+    else
+    {
+        writefln("%sPass%s\n", COLOR_GREEN, COLOR_RESET);
+    }
+}
+
 double sinh_ref(double x)
 {
     import std.math: abs, expm1;
@@ -152,4 +221,27 @@ void main()
     testUnary!(stdmath.log, rtldmath.logFallback)("logFallback (0.01..100)", linearRange(100, 0.01, 100.0));
     testUnary!(stdmath.log2, rtldmath.log2Fallback)("log2Fallback (0.01..100)", linearRange(100, 0.01, 100.0));
     testUnary!(stdmath.log10, rtldmath.log10Fallback)("log10Fallback (0.01..100)", linearRange(100, 0.01, 100.0));
+    
+    testBinary!(stdmath.hypot, rtldmath.hypotFallback)(
+        "hypotFallback (-100..100, -100..100)",
+        linearRange(20, -100.0, 100.0), 
+        linearRange(20, -100.0, 100.0));
+    
+    testBinary!(stdmath.atan2, rtldmath.atan2Fallback)(
+        "atan2Fallback",
+        linearRange(20, -50.0, 50.0), 
+        linearRange(20, -50.0, 50.0)
+    );
+    
+    testBinary!(stdmath.pow, rtldmath.powFallback)(
+        "powFallback",
+        linearRange(25, 0.01, 10.0),
+        linearRange(20, -5.0, 5.0)
+    );
+    
+    testBinary!(stdmath.copysign, rtldmath.copysignFallback)(
+        "copysignFallback",
+        linearRange(10, -10.0, 10.0), 
+        linearRange(10, -10.0, 10.0)
+    );
 }
