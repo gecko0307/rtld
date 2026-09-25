@@ -30,4 +30,5 @@ module rtld.data;
 public
 {
     import rtld.data.json;
+    import rtld.data.varint;
 }
