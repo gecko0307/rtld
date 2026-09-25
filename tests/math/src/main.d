@@ -589,19 +589,19 @@ void main()
             fp = modfFallback(cast(T) 3, ip);
             assert(ip == 3 && fp == 0 && !signbitFallback(fp));
             fp = modfFallback(cast(T) -3, ip);
-            //assert(ip == -3 && fp == 0 && signbitFallback(fp));
+            assert(ip == -3 && fp == 0 && signbitFallback(fp));
  
             // zeros
             fp = modfFallback(cast(T) 0, ip);
             assert(ip == 0 && !signbitFallback(ip) && fp == 0 && !signbitFallback(fp));
             fp = modfFallback(negZero!T, ip);
-            //assert(ip == 0 &&  signbitFallback(ip) && fp == 0 &&  signbitFallback(fp));
+            assert(ip == 0 &&  signbitFallback(ip) && fp == 0 &&  signbitFallback(fp));
  
             // infinities: integer part is +-inf, fractional part is a signed zero (not NaN)
             fp = modfFallback(T.infinity, ip);
-            //assert(ip == T.infinity && fp == 0 && !signbitFallback(fp));
+            assert(ip == T.infinity && fp == 0 && !signbitFallback(fp));
             fp = modfFallback(-T.infinity, ip);
-            //assert(ip == -T.infinity && fp == 0 && signbitFallback(fp));
+            assert(ip == -T.infinity && fp == 0 && signbitFallback(fp));
  
             // NaN
             fp = modfFallback(T.nan, ip);
