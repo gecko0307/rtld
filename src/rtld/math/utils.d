@@ -30,11 +30,7 @@ module rtld.math.utils;
 import rtld.core.traits;
 import rtld.math.base;
 public import rtld.core.bitio;
-
-/**
- * Very small value
- */
-enum EPSILON = 0.000001;
+public import rtld.math.angles;
 
 /**
  * Axes of Cartesian space
@@ -58,46 +54,6 @@ int isInfinity(T)(T x) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
     return !isNaN(x) && isNaN(x - x);
-}
-
-/**
- * Convert degrees to radians
- */
-pragma(inline, true)
-T degtorad(T) (T angle) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return (angle / 180.0) * PI;
-}
-
-/**
- * Convert radians to degrees
- */
-pragma(inline, true)
-T radtodeg(T) (T angle) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return (angle / PI) * 180.0;
-}
-
-/**
- * Convert radians to revolutions
- */
-pragma(inline, true)
-T radtorev(T)(T angle) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return angle / (2.0 * PI);
-}
-
-/**
- * Convert revolutions to radians
- */
-pragma(inline, true)
-T revtorad(T)(angle) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return angle * (2.0 * PI);
 }
 
 /**
@@ -251,30 +207,6 @@ bool oneOfIsZero(T) (T[] array...) pure nothrow @nogc
 }
 
 /**
- * Field of view angle Y from X
- */
-pragma(inline, true)
-T fovYfromX(T) (T xfov, T aspectRatio) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    xfov = degtorad(xfov);
-    T yfov = 2.0 * atan(tan(xfov * 0.5) / aspectRatio);
-    return radtodeg(yfov);
-}
-
-/**
- * Field of view angle X from Y
- */
-pragma(inline, true)
-T fovXfromY(T) (T yfov, T aspectRatio) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    yfov = degtorad(yfov);
-    T xfov = 2.0 * atan(tan(yfov * 0.5) * aspectRatio);
-    return radtodeg(xfov);
-}
-
-/**
  * Sign of a number
  */
 pragma(inline, true)
@@ -355,47 +287,4 @@ T frac(T)(T v) nothrow @nogc
 unittest
 {
     assert(abs(frac(54.832f) - 0.832f) <= EPSILON);
-}
-
-/** 
- * Wraps an arbitrary angle to [-180, +180] degrees range.
- * Input angle units depend on the provided period
- * (360 for degrees, 2.0 * PI for radians).
- *
- * Params:
- *   angle = input angle.
- *   period = full circle measure.
- * Returns:
- *   Wrapped angle.
- */
-pragma(inline, true)
-T wrapAngle(T)(T angle, T period = 360.0) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    return angle - period * floor((angle + period * 0.5) / period);
-}
-
-///
-unittest
-{
-    assert((wrapAngle(270.0f) + 90.0f) <= EPSILON);
-}
-
-/**
- * Returns shortest angular distance between two angles (in radians).
- */
-T shortestAngleDelta(T)(T angleFrom, T angleTo) pure nothrow @nogc
-    if (isFloatingPoint!T)
-{
-    float delta = angleTo - angleFrom;
-    while (delta > PI)  delta -= 2.0 * PI;
-    while (delta < -PI) delta += 2.0 * PI;
-    return delta;
-}
-
-///
-unittest
-{
-    float d = shortestAngleDelta(degtorad(45.0f), degtorad(315.0f));
-    assert((d - degtorad(90.0f)) <= EPSILON);
 }

@@ -27,6 +27,11 @@ DEALINGS IN THE SOFTWARE.
 */
 module rtld.math.constants;
 
+/**
+ * Very small value
+ */
+enum EPSILON = 0.000001;
+
 /*
  * Basic math constants
  */
