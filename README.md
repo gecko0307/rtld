@@ -16,6 +16,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 
 - `rtld.core` - cross-platform core API, including stdout, file I/O, memory allocator, dynamic library loader, threads, atomics, type traits, etc.
 - `rtld.container` - generic data containers (WIP), array sorting
+- `rtld.data` - data formats (JSON)
 - `rtld.gui` - cross-platform window management
 - `rtld.gl` - OpenGL ES 2/3
 - `rtld.hash` - fast non-cryptographic hash functions: xxHash64, xxHash32

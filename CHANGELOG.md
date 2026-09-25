@@ -1,5 +1,9 @@
 RTLD 0.6.0 - TBD
 ----------------
+* **rtld.data**
+  * New package `rtld.data` for data formats implementations. Currently it contains JSON parser (`rtld.data.json`)
+* **rtld.container**
+  * `LinearHashMap`
 * **rtld.hash**
   * New module `rtld.hash.xxhash32`
 * **rtld.math**
