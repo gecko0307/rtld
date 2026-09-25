@@ -214,6 +214,7 @@ void main()
     testUnary!(stdmath.floor, rtldmath.floorFallback)("floorFallback (-50..50)", linearRange(100, -50.0, 50.0));
     testUnary!(stdmath.round, rtldmath.roundFallback)("roundFallback (-50..50)", linearRange(100, -50.0, 50.0));
     testUnary!(stdmath.trunc, rtldmath.truncFallback)("truncFallback (-50..50)", linearRange(100, -50.0, 50.0));
+    testUnary!(stdmath.rint,  rtldmath.rintFallback)("rintFallback (-50..50)", linearRange(100, -50.0, 50.0));
 
     testUnary!(stdmath.exp, rtldmath.expFallback)("expFallback (-10..10)", linearRange(100, -10.0, 10.0));
     testUnary!(stdmath.exp2, rtldmath.exp2Fallback)("exp2Fallback (-10..10)", linearRange(100, -10.0, 10.0));

@@ -1006,6 +1006,7 @@ unittest
     assert(ulpTestUnary!(stdmath.floor, floorFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
     assert(ulpTestUnary!(stdmath.round, roundFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
     assert(ulpTestUnary!(stdmath.trunc, truncFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.rint,  rintFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
 
     assert(ulpTestUnary!(stdmath.exp,   expFallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
     assert(ulpTestUnary!(stdmath.exp2,  exp2Fallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
@@ -1013,6 +1014,7 @@ unittest
     assert(ulpTestUnary!(stdmath.log,   logFallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
     assert(ulpTestUnary!(stdmath.log2,  log2Fallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
     assert(ulpTestUnary!(stdmath.log10, log10Fallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.log1p, log1pFallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
     
     assert(ulpTestBinary!(stdmath.hypot, hypotFallback)(
         linearRange(20, -100.0, 100.0),
