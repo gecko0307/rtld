@@ -891,7 +891,7 @@ version(unittest)
     // Don't importing directly because of conflicting symbols
     import stdmath = std.math;
     
-    import std.algorithm: max, map;
+    import std.algorithm: map, cartesianProduct;
     import std.range: iota, isInputRange;
     import std.math.operations: nextUp;
     
@@ -907,16 +907,16 @@ version(unittest)
         return iota(steps).map!(i => mi + (ma - mi) * (cast(double)i / divisor));
     }
     
+    enum double DOUBLE_DENORM_MIN = 0x0.0000000000001p-1022;
+    
     // alias F1 - reference function
     // alias F2 - tested function
-    bool ulpTestUnary(alias F1, alias F2, R)(string funcName, R testPoints, double ulpTolerance)
+    bool ulpTestUnary(alias F1, alias F2, R)(R rangeX, double ulpTolerance)
         if (isInputRange!R)
     {
-        enum double DOUBLE_DENORM_MIN = 0x0.0000000000001p-1022;
-        
         double ulpMax = 0.0;
         
-        foreach(a; testPoints)
+        foreach(a; rangeX)
         {
             double r1 = F1(a);
             double r2 = F2(a);
@@ -926,15 +926,48 @@ version(unittest)
                 double absErr = stdmath.abs(r1 - r2);
                 
                 double ulpErr = 0.0;
-                if (stdmath.abs(r1) > 1e-15) 
+                if (stdmath.abs(r1) > 1e-15)
                     ulpErr = absErr / ulp(r1);
                 else if (absErr > 1e-16)
                     ulpErr = absErr / DOUBLE_DENORM_MIN;
                 
-                ulpMax = max(ulpMax, ulpErr);
+                if (ulpErr > ulpMax)
+                    ulpMax = ulpErr;
             }
         }
         
+        return ulpMax <= ulpTolerance;
+    }
+    
+    // alias F1 - reference function
+    // alias F2 - tested function
+    bool ulpTestBinary(alias F1, alias F2, R1, R2)(R1 rangeX, R2 rangeY, double ulpTolerance)
+    {
+        double ulpMax = 0.0;
+
+        foreach(pair; cartesianProduct(rangeX, rangeY))
+        {
+            double x = pair[0];
+            double y = pair[1];
+            
+            double r1 = F1(x, y);
+            double r2 = F2(x, y);
+            
+            if (r1 != r2)
+            {
+                double absErr = stdmath.abs(r1 - r2);
+                
+                double ulpErr = 0.0;
+                if (stdmath.abs(r1) > 1e-15)
+                    ulpErr = absErr / ulp(r1);
+                else if (absErr > 1e-16)
+                    ulpErr = absErr / DOUBLE_DENORM_MIN;
+
+                if (ulpErr > ulpMax)
+                    ulpMax = ulpErr;
+            }
+        }
+
         return ulpMax <= ulpTolerance;
     }
     
@@ -952,32 +985,55 @@ unittest
     enum ULP_TOLERANCE = 5;
     enum NUM_POINTS = 100;
     
-    assert(ulpTestUnary!(stdmath.sin,  sinFallback)("sinFallback (0..2*PI)",      linearRange(NUM_POINTS, 0.0, 2.0 * PI), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.cos,  cosFallback)("cosFallback (0..2*PI)",      linearRange(NUM_POINTS, 0.0, 2.0 * PI), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.tan,  tanFallback)("tanFallback (-PI/2..+PI/2)", linearRange(NUM_POINTS, -PI * 0.5, +PI * 0.5), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.asin, asinFallback)("asinFallback (-1..1)",      linearRange(NUM_POINTS, -1.0, 1.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.acos, acosFallback)("acosFallback (-1..1)",      linearRange(NUM_POINTS, -1.0, 1.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.atan, atanFallback)("atanFallback (-10..10)",    linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.sin,  sinFallback)(linearRange(NUM_POINTS, 0.0, 2.0 * PI), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.cos,  cosFallback)(linearRange(NUM_POINTS, 0.0, 2.0 * PI), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.tan,  tanFallback)(linearRange(NUM_POINTS, -PI * 0.5, +PI * 0.5), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.asin, asinFallback)(linearRange(NUM_POINTS, -1.0, 1.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.acos, acosFallback)(linearRange(NUM_POINTS, -1.0, 1.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.atan, atanFallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
 
-    assert(ulpTestUnary!(sinh_ref,      sinhFallback)("sinhFallback (-5..5)",         linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.cosh,  coshFallback)("coshFallback (-5..5)",         linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.tanh,  tanhFallback)("tanhFallback (-5..5)",         linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.asinh, asinhFallback)("asinhFallback (-10..10)",     linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.acosh, acoshFallback)("acoshFallback (1..50)",       linearRange(NUM_POINTS, 1.0, 50.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.atanh, atanhFallback)("atanhFallback (-0.99..0.99)", linearRange(NUM_POINTS, -0.99, 0.99), ULP_TOLERANCE));
+    assert(ulpTestUnary!(sinh_ref,      sinhFallback)(linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.cosh,  coshFallback)(linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.tanh,  tanhFallback)(linearRange(NUM_POINTS, -5.0, 5.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.asinh, asinhFallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.acosh, acoshFallback)(linearRange(NUM_POINTS, 1.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.atanh, atanhFallback)(linearRange(NUM_POINTS, -0.99, 0.99), ULP_TOLERANCE));
 
-    assert(ulpTestUnary!(stdmath.sqrt,  sqrtFallback)("sqrtFallback (0..1000)",     linearRange(NUM_POINTS, 0.0, 1000.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.cbrt,  cbrtFallback)("cbrtFallback (-1000..1000)", linearRange(NUM_POINTS, -1000.0, 1000.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.sqrt,  sqrtFallback)(linearRange(NUM_POINTS, 0.0, 1000.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.cbrt,  cbrtFallback)(linearRange(NUM_POINTS, -1000.0, 1000.0), ULP_TOLERANCE));
 
-    assert(ulpTestUnary!(stdmath.ceil,  ceilFallback)("ceilFallback (-50..50)",   linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.floor, floorFallback)("floorFallback (-50..50)", linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.round, roundFallback)("roundFallback (-50..50)", linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.trunc, truncFallback)("truncFallback (-50..50)", linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.ceil,  ceilFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.floor, floorFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.round, roundFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.trunc, truncFallback)(linearRange(NUM_POINTS, -50.0, 50.0), ULP_TOLERANCE));
 
-    assert(ulpTestUnary!(stdmath.exp,   expFallback)("expFallback (-10..10)",   linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.exp2,  exp2Fallback)("exp2Fallback (-10..10)", linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.exp,   expFallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.exp2,  exp2Fallback)(linearRange(NUM_POINTS, -10.0, 10.0), ULP_TOLERANCE));
 
-    assert(ulpTestUnary!(stdmath.log,   logFallback)("logFallback (0.01..100)",     linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.log2,  log2Fallback)("log2Fallback (0.01..100)",   linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
-    assert(ulpTestUnary!(stdmath.log10, log10Fallback)("log10Fallback (0.01..100)", linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.log,   logFallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.log2,  log2Fallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
+    assert(ulpTestUnary!(stdmath.log10, log10Fallback)(linearRange(NUM_POINTS, 0.01, 100.0), ULP_TOLERANCE));
+    
+    assert(ulpTestBinary!(stdmath.hypot, hypotFallback)(
+        linearRange(20, -100.0, 100.0),
+        linearRange(20, -100.0, 100.0),
+        ULP_TOLERANCE));
+    
+    assert(ulpTestBinary!(stdmath.atan2, atan2Fallback)(
+        linearRange(20, -50.0, 50.0), 
+        linearRange(20, -50.0, 50.0),
+        ULP_TOLERANCE));
+    
+    /*
+    // TODO
+    assert(ulpTestBinary!(stdmath.pow, powFallback)(
+        linearRange(25, 0.01, 10.0),
+        linearRange(20, -5.0, 5.0),
+        ULP_TOLERANCE));
+    */
+    
+    assert(ulpTestBinary!(stdmath.copysign, copysignFallback)(
+        linearRange(10, -10.0, 10.0), 
+        linearRange(10, -10.0, 10.0),
+        ULP_TOLERANCE));
 }

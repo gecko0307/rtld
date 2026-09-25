@@ -169,7 +169,7 @@ void testBinary(alias F1, alias F2, R1, R2)(string funcName, R1 rangeX, R2 range
     }
     writefln("Max error:     %.2f ULP", max_ulp);
     
-    if (max_ulp > 5.0) // Наш новый порог прохождения
+    if (max_ulp > ULP_TOLERANCE)
     {
         writefln("  Worst case at x = %.6f, y = %.6f", worst_x, worst_y);
         writefln("  reference: %.16g", worst_r1);
