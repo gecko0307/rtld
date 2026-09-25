@@ -1,0 +1,9 @@
+{
+    "foo": "bar",
+    "test": 100,
+    "bool": true,
+    "arr": [0, 1, 2],
+    "emptyObj": {},
+    "emptyArr": [],
+    "null": null
+}

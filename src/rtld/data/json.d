@@ -35,14 +35,20 @@ DEALINGS IN THE SOFTWARE.
  */
 module rtld.data.json;
 
+import rtld.core.io;
+import rtld.core.file;
 import rtld.core.memory;
+import rtld.core.ownership;
 import rtld.core.compound;
 import rtld.container.array;
-//import dlib.container.dict;
+import rtld.container.hashmap;
+import rtld.hash.xxhash64;
 import rtld.text.utils;
 import rtld.text.utf8;
 import rtld.text.lexer;
 import rtld.text.str;
+import rtld.text.format;
+import rtld.libc.stdlib;
 
 ///
 class JSONLexer
@@ -119,8 +125,6 @@ class JSONLexer
     }
 }
 
-version(none):
-
 /// JSON types enum
 enum JSONType
 {
@@ -132,108 +136,169 @@ enum JSONType
     Boolean
 }
 
-/// JSON array
-alias JSONArray = Array!JSONValue;
-
-/// JSON object
-alias JSONObject = Dict!(JSONValue, string);
-
-/// JSON value
-class JSONValue
+/// Generic JSON value
+class JSONValue: Owner
 {
-    JSONType type;
-    double asNumber;
-    string asString;
-    JSONArray asArray;
-    JSONObject asObject;
-    bool asBoolean;
-
-    this()
+    union
     {
-        asNumber = 0.0;
-        asString = "";
-        asObject = null;
-        asBoolean = false;
-    }
-
-    void addArrayElement(JSONValue element)
-    {
-        type = JSONType.Array;
-        asArray.append(element);
-    }
-
-    void addField(string name, JSONValue element)
-    {
-        if (asObject is null)
-            asObject = New!JSONObject();
-        type = JSONType.Object;
-        asObject[name] = element;
+        double asNumber;
+        bool asBoolean;
+        string asString;
+        JSONArray asArray;
+        JSONObject asObject;
+        void* asPointer;
+        protected ubyte[JSONArray.sizeof] asRawBytes;
     }
     
+    ///
+    JSONType type;
+    
+    ///
+    this(Owner owner = null)
+    {
+        super(owner);
+        type = JSONType.Null;
+        asRawBytes[] = 0;
+    }
+    
+    ///
+    ~this()
+    {
+        if (type == JSONType.Array)
+            asArray.free();
+        else if (type == JSONType.Object)
+            asObject.free();
+    }
+    
+    ///
     void makeArray()
     {
         type = JSONType.Array;
     }
     
+    ///
     void makeObject()
     {
-        if (asObject is null)
-            asObject = New!JSONObject();
         type = JSONType.Object;
     }
-
-    ~this()
+    
+    ///
+    void addArrayElement(JSONValue element)
     {
-        if (asArray.length)
+        type = JSONType.Array;
+        asArray.append(element);
+    }
+    
+    ///
+    void addObjectProperty(string key, JSONValue element)
+    {
+        type = JSONType.Object;
+        asObject[key] = element;
+    }
+    
+    /// For dlib 1.x compatibility.
+    alias addField = addObjectProperty;
+    
+    ///
+    void print() @nogc nothrow
+    {
+        switch(type)
         {
-            foreach(i, e; asArray.data)
-                Delete(e);
-            asArray.free();
-        }
-
-        if (asObject)
-        {
-            foreach(name, e; asObject)
-                Delete(e);
-            Delete(asObject);
+            case JSONType.Null:
+                printStr("null");
+                break;
+            case JSONType.Number:
+                .print(asNumber);
+                break;
+            case JSONType.Boolean:
+                if (asBoolean)
+                    .print("true");
+                else
+                    .print("false");
+                break;
+            case JSONType.String:
+                printStr(asString);
+                break;
+            case JSONType.Array:
+                printStr("[");
+                foreach(size_t i, ref element; asArray.data)
+                {
+                    if (i > 0)
+                        printStr(", ");
+                    element.print();
+                }
+                printStr("]");
+                break;
+            case JSONType.Object:
+                printStr("{");
+                foreach(size_t i, ref entry; asObject.entries.data)
+                {
+                    if (i > 0)
+                        printStr(", ");
+                    printStr("\"");
+                    printStr(entry.key);
+                    printStr("\":");
+                    entry.value.print();
+                }
+                printStr("}");
+                break;
+            default:
+                printStr("?");
+                break;
         }
     }
 }
 
+/// JSON array
+alias JSONArray = Array!JSONValue;
+
+/// JSON Object
+alias JSONObject = LinearHashMap!JSONValue;
+
 /// JSON parsing result
-alias JSONResult = Compound!(bool, string);
+alias JSONResult = Compound!(bool, String);
 
 /// JSON parsing errors enum
 enum JSONError
 {
-    EOI = JSONResult(false, "unexpected end of input")
+    EOI = JSONResult(false, String("unexpected end of input"))
+}
+
+///
+bool parseDouble(string s, ref double v)
+{
+    char* end;
+    v = strtod(s.ptr, &end);
+    return end == s.ptr + s.length;
 }
 
 /// JSON document
-class JSONDocument
+class JSONDocument: Owner
 {
-    public:
+   public:
     bool isValid;
     JSONValue root;
-
-    this(string input)
+    
+    this(string input, Owner owner = null)
     {
-        root = New!JSONValue();
-        root.type = JSONType.Object;
+        super(owner);
+        root = New!JSONValue(this);
         lexer = New!JSONLexer(input);
         JSONResult res = parseValue(root);
         isValid = res[0];
-        if (!isValid)
-            writeln(res[1]);
+        auto msg = res[1];
+        if (!isValid && msg.length)
+            printStr(msg.toString);
+        msg.free();
     }
-
+    
     ~this()
     {
         Delete(root);
         Delete(lexer);
     }
-
-    protected:
+    
+   protected:
 
     JSONLexer lexer;
     
@@ -241,12 +306,12 @@ class JSONDocument
     {
         return lexer.currentLexeme;
     }
-
+    
     void nextLexeme()
     {
         lexer.nextLexeme();
     }
-
+    
     JSONResult parseValue(JSONValue value)
     {
         if (!currentLexeme.length)
@@ -262,27 +327,27 @@ class JSONDocument
                 if (!identifier.length)
                     return JSONError.EOI;
                 if (identifier[0] != '\"' || identifier[$-1] != '\"')
-                    return JSONResult(false, format("illegal identifier \"%s\"", identifier));
+                    return JSONResult(false, format("illegal identifier \"{0}\"", identifier));
                 identifier = identifier[1..$-1];
 
                 nextLexeme();
                 if (currentLexeme != ":")
-                    return JSONResult(false, format("\":\" expected, got \"%s\"", currentLexeme));
+                    return JSONResult(false, format("\":\" expected, got \"{0}\"", currentLexeme));
 
                 nextLexeme();
-                JSONValue newValue = New!JSONValue();
+                JSONValue newValue = New!JSONValue(this);
                 JSONResult res = parseValue(newValue);
                 if (!res[0])
                     return res;
 
-                value.addField(identifier, newValue);
+                value.addObjectProperty(identifier, newValue);
 
                 nextLexeme();
 
                 if (currentLexeme == ",")
                     nextLexeme();
                 else if (currentLexeme != "}")
-                    return JSONResult(false, format("\"}\" expected, got \"%s\"", currentLexeme));
+                    return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
             }
         }
         else if (currentLexeme == "[")
@@ -291,7 +356,7 @@ class JSONDocument
             nextLexeme();
             while (currentLexeme.length && currentLexeme != "]")
             {
-                JSONValue newValue = New!JSONValue();
+                JSONValue newValue = New!JSONValue(this);
                 JSONResult res = parseValue(newValue);
                 if (!res[0])
                     return res;
@@ -303,7 +368,7 @@ class JSONDocument
                 if (currentLexeme == ",")
                     nextLexeme();
                 else if (currentLexeme != "]")
-                    return JSONResult(false, format("\"}\" expected, got \"%s\"", currentLexeme));
+                    return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
             }
         }
         else
@@ -312,24 +377,38 @@ class JSONDocument
             if (data[0] == '\"')
             {
                 if (data[$-1] != '\"')
-                    return JSONResult(false, format("illegal string \"%s\"", data));
+                    return JSONResult(false, format("illegal string \"{0}\"", data));
                 data = data[1..$-1];
                 value.type = JSONType.String;
                 value.asString = data;
             }
-            else if (data == "true" || data == "false")
+            else if (data == "true")
             {
                 value.type = JSONType.Boolean;
-                value.asBoolean = data.to!bool;
+                value.asBoolean = true;
+            }
+            else if (data == "false")
+            {
+                value.type = JSONType.Boolean;
+                value.asBoolean = false;
+            }
+            else if (data == "null")
+            {
+                value.type = JSONType.Null;
+                value.asPointer = null;
             }
             else
             {
                 value.type = JSONType.Number;
-                value.asNumber = data.to!double;
+                if (!parseDouble(data, value.asNumber))
+                {
+                    value.asNumber = double.nan;
+                    return JSONResult(false, format("illegal value \"{0}\"", data));
+                }
             }
         }
 
-        return JSONResult(true, "");
+        return JSONResult(true, String(""));
     }
 }
 

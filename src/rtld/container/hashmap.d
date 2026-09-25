@@ -26,7 +26,7 @@ DEALINGS IN THE SOFTWARE.
 */
 
 /**
- * Generic flat hash map.
+ * Generic hash maps.
  *
  * Copyright: Timur Gafarov 2026.
  * License: $(LINK2 boost.org/LICENSE_1_0.txt, Boost License 1.0).
@@ -38,9 +38,79 @@ import std.traits;
 
 import rtld.core.memory;
 import rtld.core.ownership;
+import rtld.container.array;
 import rtld.hash.xxhash64;
 
 enum XXHASH64_SEED = 42;
+
+struct LinearHashMapEntry(T)
+{
+    ulong hash;
+    string key;
+    T value;
+}
+
+/// A simple hash map based on a dynamic array.
+struct LinearHashMap(T)
+{
+    Array!(LinearHashMapEntry!T) entries;
+    size_t length;
+    
+    void free()
+    {
+        entries.free();
+        length = 0;
+    }
+    
+    void set(string key, T value)
+    {
+        ulong hash = xxHash64(key, XXHASH64_SEED);
+        foreach (ref entry; entries)
+        {
+            if (entry.hash == hash)
+            {
+                entry.value = value;
+                return;
+            }
+        }
+        entries.append(LinearHashMapEntry!T(hash, key, value));
+        length++;
+    }
+    
+    /// Returns a pointer to the entry's value, or null if it doesn't exist.
+    T* get(string key) nothrow @nogc
+    {
+        ulong hash = xxHash64(key, XXHASH64_SEED);
+        foreach(ref entry; entries.data)
+        {
+            if (entry.hash == hash)
+                return &entry.value;
+        }
+        return null;
+    }
+    
+    T opIndex(string key) nothrow @nogc
+    {
+        T* ptr = get(key);
+        if (ptr is null)
+            return T.init;
+        else
+            return *ptr;
+    }
+
+    /// Bracket syntax to set or replace a value by string hash.
+    T opIndexAssign(T value, string key)
+    {
+        set(key, value);
+        return value;
+    }
+    
+    /// "in" operator.
+    T* opBinaryRight(string op)(string key) nothrow @nogc if (op == "in")
+    {
+        return get(xxHash64(key, XXHASH64_SEED));
+    }
+}
 
 /**
  * An open-addressing hash map that stores data in a contiguous buffer

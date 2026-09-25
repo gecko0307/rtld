@@ -206,7 +206,7 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
     else static if (__traits(hasMember, T, "toString") && 
                     is(typeof(arg.toString((const(char)[] s) => printStr(s)))))
     {
-        void delegate(const(char)[]) @nogc nothrow sink;
+        void delegate(const(char)[]) sink;
         sink.ptr = null;
         sink.funcptr = &printStr;
         arg.toString(sink);
@@ -229,6 +229,12 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
         if (arg is null)
         {
             printStr("null");
+            return;
+        }
+        
+        if (__traits(hasMember, T, "print"))
+        {
+            arg.print();
             return;
         }
         
