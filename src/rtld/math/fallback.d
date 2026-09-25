@@ -1093,18 +1093,27 @@ version(unittest)
 
 unittest
 {
+    /*
+     * Accuracy test for the rtld.math.fallback implementations.
+     *
+     * This test compares the results of fallback math functions against the
+     * corresponding std.math functions over a representative set of input
+     * values. A function is considered to pass when all tested results satisfy
+     * the given absolute or relative error tolerance.
+     */
+    
     enum NUM_POINTS = 100;
     
-    assert(testUnary!(stdmath.sin,  sinFallback)(linearRange(NUM_POINTS, 0.0, 2.0 * PI)));
-    assert(testUnary!(stdmath.cos,  cosFallback)(linearRange(NUM_POINTS, 0.0, 2.0 * PI)));
-    assert(testUnary!(stdmath.tan,  tanFallback)(linearRange(NUM_POINTS, -PI * 0.5, +PI * 0.5)));
+    assert(testUnary!(stdmath.sin,  sinFallback) (linearRange(NUM_POINTS, 0.0, 2.0 * PI)));
+    assert(testUnary!(stdmath.cos,  cosFallback) (linearRange(NUM_POINTS, 0.0, 2.0 * PI)));
+    assert(testUnary!(stdmath.tan,  tanFallback) (linearRange(NUM_POINTS, -PI * 0.5, +PI * 0.5)));
     assert(testUnary!(stdmath.asin, asinFallback)(linearRange(NUM_POINTS, -1.0, 1.0)));
     assert(testUnary!(stdmath.acos, acosFallback)(linearRange(NUM_POINTS, -1.0, 1.0)));
     assert(testUnary!(stdmath.atan, atanFallback)(linearRange(NUM_POINTS, -10.0, 10.0)));
 
-    assert(testUnary!(stdmath.sinh,  sinhFallback)(linearRange(NUM_POINTS, -5.0, 5.0)));
-    assert(testUnary!(stdmath.cosh,  coshFallback)(linearRange(NUM_POINTS, -5.0, 5.0)));
-    assert(testUnary!(stdmath.tanh,  tanhFallback)(linearRange(NUM_POINTS, -5.0, 5.0)));
+    assert(testUnary!(stdmath.sinh,  sinhFallback) (linearRange(NUM_POINTS, -5.0, 5.0)));
+    assert(testUnary!(stdmath.cosh,  coshFallback) (linearRange(NUM_POINTS, -5.0, 5.0)));
+    assert(testUnary!(stdmath.tanh,  tanhFallback) (linearRange(NUM_POINTS, -5.0, 5.0)));
     assert(testUnary!(stdmath.asinh, asinhFallback)(linearRange(NUM_POINTS, -10.0, 10.0)));
     assert(testUnary!(stdmath.acosh, acoshFallback)(linearRange(NUM_POINTS, 1.0, 50.0)));
     assert(testUnary!(stdmath.atanh, atanhFallback)(linearRange(NUM_POINTS, -0.99, 0.99)));
@@ -1112,17 +1121,17 @@ unittest
     assert(testUnary!(stdmath.sqrt,  sqrtFallback)(linearRange(NUM_POINTS, 0.0, 1000.0)));
     assert(testUnary!(stdmath.cbrt,  cbrtFallback)(linearRange(NUM_POINTS, -1000.0, 1000.0)));
 
-    assert(testUnary!(stdmath.ceil,  ceilFallback)(linearRange(NUM_POINTS, -50.0, 50.0)));
+    assert(testUnary!(stdmath.ceil,  ceilFallback) (linearRange(NUM_POINTS, -50.0, 50.0)));
     assert(testUnary!(stdmath.floor, floorFallback)(linearRange(NUM_POINTS, -50.0, 50.0)));
     assert(testUnary!(stdmath.round, roundFallback)(linearRange(NUM_POINTS, -50.0, 50.0)));
     assert(testUnary!(stdmath.trunc, truncFallback)(linearRange(NUM_POINTS, -50.0, 50.0)));
-    assert(testUnary!(stdmath.rint,  rintFallback)(linearRange(NUM_POINTS, -50.0, 50.0)));
+    assert(testUnary!(stdmath.rint,  rintFallback) (linearRange(NUM_POINTS, -50.0, 50.0)));
 
-    assert(testUnary!(stdmath.exp,   expFallback)(linearRange(NUM_POINTS, -10.0, 10.0)));
+    assert(testUnary!(stdmath.exp,   expFallback) (linearRange(NUM_POINTS, -10.0, 10.0)));
     assert(testUnary!(stdmath.exp2,  exp2Fallback)(linearRange(NUM_POINTS, -10.0, 10.0)));
 
-    assert(testUnary!(stdmath.log,   logFallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
-    assert(testUnary!(stdmath.log2,  log2Fallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
+    assert(testUnary!(stdmath.log,   logFallback)  (linearRange(NUM_POINTS, 0.01, 100.0)));
+    assert(testUnary!(stdmath.log2,  log2Fallback) (linearRange(NUM_POINTS, 0.01, 100.0)));
     assert(testUnary!(stdmath.log10, log10Fallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
     assert(testUnary!(stdmath.log1p, log1pFallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
     

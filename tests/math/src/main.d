@@ -282,6 +282,29 @@ void testBinary(alias F1, alias F2, R1, R2)(string funcName, R1 rangeX, R2 range
 
 void main()
 {
+    /*
+     * Accuracy test for the rtld.math.fallback implementations.
+     *
+     * This test compares the results of RTLD math functions against the
+     * corresponding std.math functions over a representative set of input
+     * values.
+     *
+     * The test reports several accuracy metrics:
+     *   - exact matches between the two implementations;
+     *   - maximum absolute error;
+     *   - maximum relative error;
+     *   - maximum error measured in ULPs.
+     *
+     * A function is considered to pass when all tested results satisfy the
+     * given absolute or relative error tolerance. ULP error is reported
+     * as additional diagnostic information, since different correctly rounded
+     * implementations may legitimately produce slightly different floating-
+     * point results.
+     *
+     * The test also records the input and output corresponding to the worst
+     * observed errors, making it useful not only as a regression test but
+     * also for investigating numerical accuracy of individual functions.
+     */
     testUnary!(stdmath.sin, rtldmath.sinFallback)("sinFallback (0..2*PI)", linearRange(100, 0.0, 2.0 * PI));
     testUnary!(stdmath.cos, rtldmath.cosFallback)("cosFallback (0..2*PI)", linearRange(100, 0.0, 2.0 * PI));
     testUnary!(stdmath.tan, rtldmath.tanFallback)("tanFallback (-PI/2..+PI/2)", linearRange(100, -PI * 0.5, +PI * 0.5));
