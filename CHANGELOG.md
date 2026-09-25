@@ -1,39 +1,58 @@
 RTLD 0.5.0 - TBD
 ----------------
-* `rtld.core.compound`
-* `rtld.gui`
-* `rtld.text.lexer`
-* `rtld.text.ascii`
-* `rtld.text.utils`
-* Improve formatted printer
-* New math functions: `modf`, `wrapAngle`, `shortestAngleDelta`
+* **rtld.core**
+  * New module `rtld.core.compound`
+  * Improve formatted printing in `rtld.core.io`
+* **rtld.gui**
+  * `rtld.core.window` moved to the new package `rtld.gui`
+* **rtld.text**
+  * New module `rtld.text.lexer`
+  * New module `rtld.text.ascii`
+  * New module `rtld.text.utils`
+* **rtld.math**
+  * New module `rtld.math.angles`
+  * New base math function `modf`.
 
 RTLD 0.4.0 - 24 Sep, 2026
 -------------------------
-* Many runtime fixes
-* Many `rtld.math.fallback` fixes
-* `rtld.core._version`
-* `rtld.core.bitio`
-* `rtld.core.tuple`
-* `rtld.memory.arena`
-* `rtld.container.sorting`
-* `rtld.container.hashmap`
-* `rtld.text.str`
-* `rtld.text.format`
+* **rtld.core**
+  * New module `rtld.core._version`
+  * New module `rtld.core.bitio`
+  * New module `rtld.core.tuple`
+* **rtld.memory**
+  * New module `rtld.memory.arena`
+* **rtld.container**
+  * `rtld.container.sorting`
+  * `rtld.container.hashmap`
+* **rtld.text**
+  * New module `rtld.text.str`
+  * New module `rtld.text.format`
+* **rtld.math**
+  * Many `rtld.math.fallback` fixes
+* **runtime**
+  * Many runtime fixes.
 
 RTLD 0.3.0 - 23 Sep, 2026
 -------------------------
-* `rtld.memory`
-* Memory profiler in `rtld.core.memory`
-* `rtld.core.atomic`
+* **rtld.core**
+  * Memory profiler in `rtld.core.memory`
+  * New module `rtld.core.atomic`
+* **rtld.memory**
+  * New package `rtld.memory`.
 
 RTLD 0.2.0 - 22 Sep, 2026
 -------------------------
-* `rtld.container`
-* `rtld.core.file`
-* `rtld.core.utf18`
-* Formatted output in `rtld.core.io`
-* More libc and POSIX functions
+* **rtld.core**
+  * New module `rtld.core.file`
+  * Basic formatted output support in `rtld.core.io`
+* **rtld.container**
+  * New package `rtld.container`
+* **rtld.text**
+  * New module `rtld.text.utf16`
+* **rtld.libc**
+  * More libc functions
+* **rtld.sys**
+  * More POSIX functions.
 
 RTLD 0.1.0 - 20 Sep, 2026
 -------------------------
