@@ -37,5 +37,6 @@ module rtld.hash;
 
 public
 {
+    import rtld.hash.xxhash32;
     import rtld.hash.xxhash64;
 }

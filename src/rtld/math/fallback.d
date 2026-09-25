@@ -516,11 +516,15 @@ T exp2Fallback(T)(T x) pure nothrow @nogc
     return expFallback(x * cast(T)LN2);
 }
 
-private union DBits { double d; ulong u; }
-
 // Splits finite x > 0 into m * 2^e; returns m.
 private double splitLog(T)(T x, out int e) pure nothrow @nogc
 {
+    union DBits
+    {
+        double d;
+        ulong u;
+    }
+    
     e = 0;
     static if (T.max_exp > 1024) // real wider than double: rescale into double's range
     {
@@ -695,15 +699,25 @@ T powFallback(T)(T x, T y) pure nothrow @nogc
 T hypotFallback(T)(T x, T y) pure nothrow @nogc
     if (isFloatingPoint!T)
 {
-    if (x == 0) return 0;
+    if (x == T.infinity || x == -T.infinity ||
+        y == T.infinity || y == -T.infinity)
+        return T.infinity;
+    
+    if (x != x || y != y)
+        return T.nan;
+
     x = fabsFallback(x);
     y = fabsFallback(y);
     if (x < y)
     {
         auto t = x; x = y; y = t;
     }
+    
+    if (x == 0)
+        return 0;
+    
     T r = y / x;
-    return x * sqrtFallback(1.0 + r * r);
+    return x * sqrtFallback(1 + r * r);
 }
 
 pragma(inline, true)

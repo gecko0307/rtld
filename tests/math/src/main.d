@@ -497,9 +497,9 @@ void main()
                         assert(approx(hypotFallback(cast(T)(sy * t[1]), cast(T)(sx * t[0])), t[2], tol));
                     }
  
-            //assert(hypotFallback(cast(T) 0, cast(T)  5) == 5);
+            assert(hypotFallback(cast(T) 0, cast(T)  5) == 5);
             assert(hypotFallback(cast(T) 5, cast(T)  0) == 5);
-            //assert(hypotFallback(cast(T) 0, cast(T) -5) == 5);
+            assert(hypotFallback(cast(T) 0, cast(T) -5) == 5);
             assert(hypotFallback(cast(T) 0, cast(T)  0) == 0);
             assert(!signbitFallback(hypotFallback(cast(T) 0, cast(T) 0)));
             assert(!signbitFallback(hypotFallback(negZero!T, negZero!T))); // always +0
@@ -524,8 +524,8 @@ void main()
                 double x = i * 0.7, y = j * 1.3;
                 double h = hypotFallback(x, y);
  
-                //assert(approx(h, sqrtFallback(x * x + y * y), 1e-14));
-                //assert(approx(hypotFallback(y, x),   h, 1e-15));
+                assert(approx(h, sqrtFallback(x * x + y * y), 1e-14));
+                assert(approx(hypotFallback(y, x),   h, 1e-15));
                 assert(approx(hypotFallback(-x, y),  h, 1e-15));
                 assert(approxScaled(x, y, h, 0x1p+100));
                 assert(approxScaled(x, y, h, 0x1p-100));
@@ -560,9 +560,9 @@ void main()
             enum T inf = T.infinity;
             assert(hypotFallback( inf, cast(T) 1) == inf);
             assert(hypotFallback(cast(T) 1, -inf) == inf);
-            //assert(hypotFallback(-inf, -inf) == inf);
-            //assert(hypotFallback( inf, T.nan) == inf);      // infinity wins over NaN
-            //assert(hypotFallback(T.nan, -inf) == inf);
+            assert(hypotFallback(-inf, -inf) == inf);
+            assert(hypotFallback( inf, T.nan) == inf); // infinity wins over NaN
+            assert(hypotFallback(T.nan, -inf) == inf);
             assert(isNaN(hypotFallback(T.nan, cast(T) 1)));
             assert(isNaN(hypotFallback(cast(T) 1, T.nan)));
             assert(isNaN(hypotFallback(T.nan, T.nan)));
