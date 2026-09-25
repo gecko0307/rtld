@@ -1135,6 +1135,14 @@ unittest
     assert(testUnary!(stdmath.log10, log10Fallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
     assert(testUnary!(stdmath.log1p, log1pFallback)(linearRange(NUM_POINTS, 0.01, 100.0)));
     
+    assert(testBinary!(stdmath.fmax, fmaxFallback)(
+        linearRange(20, 0.0, 100.0),
+        linearRange(20, 100.0, 0.0)));
+    
+    assert(testBinary!(stdmath.fmin, fminFallback)(
+        linearRange(20, 0.0, 100.0),
+        linearRange(20, 100.0, 0.0)));
+    
     assert(testBinary!(stdmath.hypot, hypotFallback)(
         linearRange(20, -100.0, 100.0),
         linearRange(20, -100.0, 100.0)));
