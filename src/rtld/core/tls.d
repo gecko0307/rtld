@@ -25,57 +25,47 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
-module rtld;
+module rtld.core.tls;
 
-public
+version(Windows)
 {
-    import rtld.core;
-    import rtld.container;
-    import rtld.data;
-    import rtld.gl;
-    import rtld.gui;
-    import rtld.hash;
-    import rtld.libc;
-    import rtld.math;
-    import rtld.memory;
-    import rtld.random;
-    version(Posix)   import rtld.sys.posix;
-    version(Windows) import rtld.sys.windows;
-    version(linux)   import rtld.sys.linux;
-    import rtld.text;
-    import rtld.time;
+    import rtld.sys.windows.windows;
+
+    alias TLSKey = uint;
+
+    enum TLS_INVALID = uint.max;
+
+    TLSKey tlsAlloc() @nogc nothrow
+    {
+        return TlsAlloc();
+    }
+
+    void tlsFree(TLSKey key) @nogc nothrow
+    {
+        TlsFree(key);
+    }
+
+    void* tlsGet(TLSKey key) @nogc nothrow
+    {
+        return TlsGetValue(key);
+    }
+
+    bool tlsSet(TLSKey key, void* value) @nogc nothrow
+    {
+        return TlsSetValue(key, value) != 0;
+    }
+    
+    __gshared TLSKey threadKey;
+}
+else version(Posix)
+{
+    // TODO
 }
 
-void rtldInit() nothrow @nogc
+void init() @nogc nothrow
 {
-    version(FreeStanding)
+    version(Windows)
     {
-    }
-    else
-    {
-        version(Windows)
-        {
-            // Set console code page to UTF-8
-            SetConsoleCP(CP_UTF8);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-       
-        rtld.core.tls.init();
-        rtld.core.errno.init();
-        rtld.random.random.init();
-        rtld.time.datetime.init();
-        version(linux)
-        {
-            rtld.sys.linux.x11.init();
-        }
-        rtld.gl.context.init();
-    }
-}
-
-version(Phobos)
-{
-    static this()
-    {
-        rtldInit();
+        threadKey = tlsAlloc();
     }
 }

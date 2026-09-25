@@ -146,6 +146,8 @@ alias PRTL_CRITICAL_SECTION = RTL_CRITICAL_SECTION*;
 alias CRITICAL_SECTION = RTL_CRITICAL_SECTION;
 alias LPCRITICAL_SECTION = PRTL_CRITICAL_SECTION;
 
+enum TLS_OUT_OF_INDEXES = 0xffffffff;
+
 enum DWORD GENERIC_READ  = 0x80000000;
 enum DWORD GENERIC_WRITE = 0x40000000;
 enum DWORD FILE_SHARE_READ = 0x00000001;
@@ -395,6 +397,10 @@ extern(Windows) nothrow @nogc
     BOOL TryEnterCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     VOID LeaveCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
     VOID DeleteCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
+    uint TlsAlloc();
+    int TlsSetValue(uint index, void* value);
+    void* TlsGetValue(uint index);
+    int TlsFree(uint index);
     
     // Files
     HANDLE GetStdHandle(DWORD nStdHandle);
