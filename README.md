@@ -71,7 +71,7 @@ string name = "Test";
 int code = 200;
 float num = 0.5f;
 Property prop = Property("Money", 100);
-printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
+printFmtLn("string: {0}, int: {1}, hex: 0x{1:X}, float: {2}, prop: {3}", name, code, num, prop);
 
 string utf8Str = "Обычная строка";
 wstring utf16Str = "Широкая строка"w;
