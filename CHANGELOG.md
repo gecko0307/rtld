@@ -1,5 +1,5 @@
-RTLD 0.6.0 - TBD
-----------------
+RTLD 0.6.0 - 26 Sep, 2026
+-------------------------
 * **rtld.core**
   * New module `rtld.core.conv`
   * New module `rtld.core.errno`
