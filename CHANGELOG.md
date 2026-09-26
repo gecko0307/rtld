@@ -3,6 +3,7 @@ RTLD 0.6.0 - TBD
 * **rtld.core**
   * New module `rtld.core.conv`
   * New module `rtld.core.errno`
+  * Generic output: to stdout, stderr, or a file
 * **rtld.data**
   * New package `rtld.data` for data formats implementations. Currently it contains JSON parser (`rtld.data.json`) and Varint encoder/decoder (`rtld.data.varint`)
 * **rtld.container**
@@ -10,7 +11,9 @@ RTLD 0.6.0 - TBD
 * **rtld.hash**
   * New module `rtld.hash.xxhash32`
 * **rtld.math**
-  * `rtld.math.fallback` unittests.
+  * `rtld.math.fallback` unittests
+* **rtld.sys**
+  * Fixes in `rtld.sys.posix`.
 
 RTLD 0.5.0 - 25 Sep, 2026
 -------------------------
