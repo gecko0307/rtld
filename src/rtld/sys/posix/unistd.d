@@ -41,8 +41,9 @@ enum int X_OK = 1;
 enum int W_OK = 2;
 enum int R_OK = 4;
 
+enum STDIN_FILENO = 0;
 enum STDOUT_FILENO = 1;
-enum STDERR_FILENO = 1;
+enum STDERR_FILENO = 2;
 
 extern(C) nothrow @nogc
 {

@@ -44,14 +44,21 @@ else version(Posix)
 
 /**
  * A generic output target.
- * Obtained via `stdout`, `stderr`, or `File.open`.
+ * Obtained via `stdout`, `stderr`, or `File.open(filemame, FileAccessMode.Write)`.
  */
 alias OutputStream = File;
+
+/**
+ * A generic input target.
+ * Obtained via `stdin` or `File.open(filemame, FileAccessMode.Read)`.
+ */
+alias InputStream = File;
 
 private __gshared
 {
     OutputStream _stdout;
     OutputStream _stderr;
+    InputStream _stdin;
     bool _stdStreamsInitialized = false;
 }
 
@@ -64,11 +71,13 @@ void init() @nogc nothrow
     {
         _stdout.handle = GetStdHandle(STD_OUTPUT_HANDLE);
         _stderr.handle = GetStdHandle(STD_ERROR_HANDLE);
+        _stdin.handle  = GetStdHandle(STD_INPUT_HANDLE);
     }
     else version(Posix)
     {
         _stdout.handle = STDOUT_FILENO;
         _stderr.handle = STDERR_FILENO;
+        _stdin.handle  = STDIN_FILENO;
     }
  
     _stdStreamsInitialized = true;
@@ -80,6 +89,7 @@ void finalize() @nogc nothrow
     {
         _stdout.close();
         _stderr.close();
+        _stdin.close();
     }
 }
 
@@ -88,11 +98,17 @@ void finalize() @nogc nothrow
 {
     return _stdout;
 }
- 
+
 /// The process's standard error stream.
 @property OutputStream stderr() @nogc nothrow
 {
     return _stderr;
+}
+
+/// The process's standard input stream.
+@property InputStream stdin() @nogc nothrow
+{
+    return _stdin;
 }
 
 void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
