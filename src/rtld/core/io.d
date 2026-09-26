@@ -376,6 +376,117 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
 }
 
 ///
+void printFmtArg(T)(OutputStream stream, T arg, const(char)[] spec) @nogc nothrow
+{
+    if (spec.length == 0)
+    {
+        print(stream, arg);
+        return;
+    }
+
+    static if (isInteger!T)
+    {
+        ulong bits = cast(ulong)arg;
+        ulong mask = T.sizeof >= 8 ? ulong.max : ((1UL << (T.sizeof * 8)) - 1);
+        bits &= mask;
+
+        switch (spec[0])
+        {
+            case 'x': printHex(stream, bits, false); return;
+            case 'X': printHex(stream, bits, true);  return;
+            case 'b': printBinary(stream, bits);     return;
+            //TODO:
+            //case 'o': printOctal(stream, bits);      return;
+            default: break;
+        }
+    }
+    else static if (isFloatingPoint!T)
+    {
+        if (spec[0] == 'f' || spec[0] == 'F')
+        {
+            int precision = 6;
+            if (spec.length > 1)
+            {
+                precision = 0;
+                foreach (c; spec[1..$])
+                {
+                    if (c < '0' || c > '9') { precision = 6; break; }
+                    precision = precision * 10 + (c - '0');
+                }
+            }
+            printFloatFixed(stream, cast(double)arg, precision);
+            return;
+        }
+    }
+
+    print(stream, arg); // unknown spec, or non-numeric type: default formatting
+}
+
+private void printHex(OutputStream stream, ulong value, bool uppercase) @nogc nothrow
+{
+    if (value == 0) { printStr(stream, "0"); return; }
+
+    static immutable char[16] lower = "0123456789abcdef";
+    static immutable char[16] upper = "0123456789ABCDEF";
+    const(char[16])* digits = uppercase ? &upper : &lower;
+    char[16] buf;
+    size_t pos = buf.length;
+    while (value > 0)
+    {
+        pos--;
+        buf[pos] = (*digits)[value & 0xF];
+        value >>= 4;
+    }
+    printStr(stream, cast(string)buf[pos..$]);
+}
+
+private void printBinary(OutputStream stream, ulong value) @nogc nothrow
+{
+    if (value == 0)
+    {
+        printStr(stream, "0");
+        return;
+    }
+    char[64] buf;
+    size_t pos = buf.length;
+    while (value > 0)
+    {
+        pos--;
+        buf[pos] = cast(char)('0' + (value & 1));
+        value >>= 1;
+    }
+    printStr(stream, cast(string)buf[pos..$]);
+}
+
+private void printFloatFixed(OutputStream stream, double arg, int precision) @nogc nothrow
+{
+    if (arg != arg) { printStr(stream, "nan"); return; }
+    if (arg == double.infinity)  { printStr(stream, "inf");  return; }
+    if (arg == -double.infinity) { printStr(stream, "-inf"); return; }
+    if (arg < 0) { printStr(stream, "-"); arg = -arg; }
+
+    long integerPart = cast(long)arg;
+    print(stream, integerPart);
+
+    if (precision <= 0)
+        return;
+
+    printStr(stream, ".");
+
+    double fractionalPart = arg - integerPart;
+    char[24] buf;
+    size_t pos = 0;
+    while (pos < precision)
+    {
+        fractionalPart *= 10;
+        int digit = cast(int)fractionalPart;
+        buf[pos++] = cast(char)('0' + digit);
+        fractionalPart -= digit;
+    }
+    printStr(stream, cast(string)buf[0..pos]); // no trailing-zero stripping here
+}
+
+///
 pragma(inline, true)
 void print(T)(T arg, bool quote = false) @nogc nothrow
 {
@@ -406,6 +517,7 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
     {
         if (fmt[i] == '{') 
         {
+            /*
             size_t j = i + 1;
             int argIdx = 0;
             bool hasIndex = false;
@@ -420,7 +532,7 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
             if (j < fmt.length && fmt[j] == '}' && hasIndex) 
             {
                 if (i > lastIdx) {
-                    printStr(stream, fmt[lastIdx .. i]);
+                    printStr(stream, fmt[lastIdx..i]);
                 }
 
                 bool found = false;
@@ -430,6 +542,59 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
                     if (!found && argIdx == idx)
                     {
                         print(stream, args[idx]);
+                        found = true;
+                    }
+                }
+
+                if (!found)
+                {
+                    printStr(stream, "{?}");
+                }
+                
+                i = j; 
+                lastIdx = i + 1;
+            }
+            */
+            
+            size_t j = i + 1;
+            int argIdx = 0;
+            bool hasIndex = false;
+
+            while (j < fmt.length && fmt[j] >= '0' && fmt[j] <= '9')
+            {
+                argIdx = (argIdx * 10) + (fmt[j] - '0');
+                hasIndex = true;
+                j++;
+            }
+
+            const(char)[] spec = null;
+            if (hasIndex && j < fmt.length && fmt[j] == ':')
+            {
+                size_t specStart = j + 1;
+                size_t k = specStart;
+                while (k < fmt.length && fmt[k] != '}')
+                    k++;
+
+                if (k < fmt.length)
+                {
+                    spec = fmt[specStart..k];
+                    j = k;
+                }
+            }
+
+            if (j < fmt.length && fmt[j] == '}' && hasIndex)
+            {
+                if (i > lastIdx)
+                    printStr(stream, fmt[lastIdx..i]);
+
+                bool found = false;
+
+                static foreach (idx, Arg; Args)
+                {
+                    if (!found && argIdx == idx)
+                    {
+                        //print(stream, args[idx]);
+                        printFmtArg(stream, args[idx], spec);
                         found = true;
                     }
                 }

@@ -27,10 +27,10 @@ int main()
 {
     // Printing to stdout
     string name = "Тест";
-    int code = 200;
+    int code = 0xc8;
     float num = 0.5f;
     Property prop = Property("Money", 100);
-    printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
+    printFmtLn("string: {0}, int: {1}, hex: 0x{1:X}, float: {2}, prop: {3}", name, code, num, prop);
     
     string normalStr = "Обычная строка";
     wstring wideStr = "Широкая строка Windows (UTF-16)"w;
@@ -49,11 +49,12 @@ int main()
         return 1;
     File file = openResult.value;
     file.printLn("Hello, World!");
-    file.printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
+    file.printFmtLn("string: {0}, int: {1}, hex: {1:x}, float: {2}, prop: {3}", name, code, num, prop);
     file.printFmtLn("Unicode: {0} | {1}", normalStr, wideStr);
     file.close();
     
     // Reading from stdin
+    /*
     printLn("Waiting for input");
     LineReader reader = LineReader(stdin);
     char[256] lineBuf;
@@ -64,6 +65,7 @@ int main()
         printFmtLn("You said: {0}", input);
         break;
     }
+    */
     
     return 0;
 }
