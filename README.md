@@ -98,3 +98,19 @@ String s = format(
 printLn(s);
 s.free();
 ```
+
+Creating objects:
+
+```d
+class MyClass
+{
+    int x;
+    this(int x)
+    {
+        this.x = x;
+    }
+}
+
+MyClass c = New!MyClass(10);
+Delete(c)
+```
