@@ -35,6 +35,8 @@ DEALINGS IN THE SOFTWARE.
  */
 module rtld.data.varint;
 
+import rtld.core.io;
+
 /**
  * Protobuf-style variable-sized integer
  */
@@ -47,6 +49,13 @@ struct Varint
     ubyte[] bytes() @nogc nothrow
     {
         return buffer[0..size];
+    }
+    
+    ///
+    void print(OutputStream stream) @nogc nothrow
+    {
+        ulong i = decodeVarint(this);
+        .print(stream, i);
     }
 }
 
