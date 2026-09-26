@@ -1,3 +1,8 @@
+RTLD 0.7.0 - TBD
+----------------
+* **rtld.core**
+  * Basic formatting specs support for printing integers in hex or binary and floats with arbitrary precision: `{0:x}`, `{0:X}`, `{0:b}`, `{0:f2}`.
+
 RTLD 0.6.1 - 26 Sep, 2026
 -------------------------
 * **rtld.text**
