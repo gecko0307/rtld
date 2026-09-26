@@ -32,8 +32,14 @@ int main()
     TestClass t = New!TestClass();
     
     int[5] arr = [0, 1, 2, 3, 4];
-    String s4 = format("Name: {0}, age: {1}, employed: {2}, weight: {3}, class: {4}, ptr: {5}, arr: {6}", "John Doe",
-        30, true, 80.0f, t, cast(void*)t, arr);
+    String s4 = format("Name: {0}, age: {1}, hex: 0x{1:X}, employed: {2}, weight: {3}, class: {4}, ptr: {5}, arr: {6}",
+        "John Doe",
+        30,
+        true,
+        80.0f,
+        t,
+        cast(void*)t,
+        arr);
     printLn(s4);
     printLn(s4.length);
     s4.free();

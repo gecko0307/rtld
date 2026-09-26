@@ -70,7 +70,7 @@ struct String
     pragma(inline, true)
     void removeZero()
     {
-        if (data.length > 0)
+        while (data.length > 0 && data[$-1] == '\0')
             data.removeBack(1);
     }
 
@@ -207,20 +207,10 @@ struct String
     {
         data.free();
     }
-    
-    ///
-    pragma(inline, true)
-    auto opOpAssign(string op)(char[] s) if (op == "~")
-    {
-        removeZero();
-        data.insertBack(s);
-        addZero();
-        return this;
-    }
 
     ///
     pragma(inline, true)
-    auto opOpAssign(string op)(string s) if (op == "~")
+    auto opOpAssign(string op)(const(char)[] s) if (op == "~")
     {
         removeZero();
         data.insertBack(s);
@@ -242,11 +232,10 @@ struct String
     pragma(inline, true)
     auto opOpAssign(string op)(String s) if (op == "~")
     {
-        String s1 = this;
-        s1.removeZero();
-        s1 ~= s;
-        s1.addZero();
-        return s1;
+        removeZero();
+        data.insertBack(s.toString);
+        addZero();
+        return this;
     }
 
     ///
@@ -324,11 +313,9 @@ struct String
     }
     
     /// Appends a generic value.
-    void append(T)( T val)
+    void append(T)(T val)
     {
         static if (isString!T)
-            this ~= val;
-        else static if (is(T == String))
             this ~= val;
         else static if (isWString!T)
         {
@@ -347,7 +334,7 @@ struct String
             }
             while(codepoint != DECODE_END && codepoint != DECODE_ERROR);
         }
-        else static if (is(T ==  bool))
+        else static if (is(T == bool))
         {
             if (val)
                 this ~= "true";

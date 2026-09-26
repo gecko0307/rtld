@@ -44,52 +44,183 @@ import rtld.text.encodings;
  * Returns:
  *   The formatted String object.
  */
-String format(Args...)(string fmt, Args args)
+String format(Args...)(const(char)[] fmt, Args args)
 {
     String s;
     s.reserve(fmt.length + Args.length * 8);
+    
+    size_t lastIdx = 0;
 
-    for (size_t i = 0; i < fmt.length; i++)
+    for (size_t i = 0; i < fmt.length; i++) 
     {
-        if (fmt[i] == '{' && i + 1 < fmt.length)
+        if (fmt[i] == '{') 
         {
-            size_t start = i + 1;
-            size_t end = start;
-            
-            while (end < fmt.length && fmt[end] >= '0' && fmt[end] <= '9')
+            size_t j = i + 1;
+            int argIdx = 0;
+            bool hasIndex = false;
+
+            while (j < fmt.length && fmt[j] >= '0' && fmt[j] <= '9')
             {
-                end++;
+                argIdx = (argIdx * 10) + (fmt[j] - '0');
+                hasIndex = true;
+                j++;
             }
-            
-            if (end < fmt.length && fmt[end] == '}' && end > start)
+
+            const(char)[] spec = null;
+            if (hasIndex && j < fmt.length && fmt[j] == ':')
             {
-                size_t argIdx = 0;
-                for (size_t k = start; k < end; k++)
+                size_t specStart = j + 1;
+                size_t k = specStart;
+                while (k < fmt.length && fmt[k] != '}')
+                    k++;
+
+                if (k < fmt.length)
                 {
-                    argIdx = argIdx * 10 + (fmt[k] - '0');
+                    spec = fmt[specStart..k];
+                    j = k;
                 }
-                
-                ArgSwitch: switch(argIdx)
+            }
+
+            if (j < fmt.length && fmt[j] == '}' && hasIndex)
+            {
+                if (i > lastIdx)
+                    s.append(fmt[lastIdx..i]);
+
+                bool found = false;
+
+                static foreach (idx, Arg; Args)
                 {
-                    static foreach(idx; 0..Args.length)
+                    if (!found && argIdx == idx)
                     {
-                        case idx:
-                            s.append(args[idx]);
-                            break ArgSwitch;
+                        s.appendArgSpec(args[idx], spec);
+                        found = true;
                     }
-                    default:
-                        s ~= "{ERROR}";
-                        break ArgSwitch;
+                }
+
+                if (!found)
+                {
+                    s.append("{?}");
                 }
                 
-                i = end;
-                continue;
+                i = j; 
+                lastIdx = i + 1;
             }
         }
-        
-        s ~= fmt[i];
     }
     
-    s.addZero();
+    if (lastIdx < fmt.length)
+        s.append(fmt[lastIdx..$]);
+    
     return s;
+}
+
+///
+private void appendArgSpec(T)(ref String s, T arg, const(char)[] spec)
+{
+    if (spec.length == 0)
+    {
+        s.append(arg);
+        return;
+    }
+
+    static if (isInteger!T)
+    {
+        ulong bits = cast(ulong)arg;
+        ulong mask = T.sizeof >= 8 ? ulong.max : ((1UL << (T.sizeof * 8)) - 1);
+        bits &= mask;
+
+        switch (spec[0])
+        {
+            case 'x': s.appendHex(bits, false); return;
+            case 'X': s.appendHex(bits, true);  return;
+            case 'b': s.appendBinary(bits);     return;
+            //TODO:
+            //case 'o': s.appendOctal(bits);      return;
+            default: break;
+        }
+    }
+    else static if (isFloatingPoint!T)
+    {
+        if (spec[0] == 'f' || spec[0] == 'F')
+        {
+            int precision = 6;
+            if (spec.length > 1)
+            {
+                precision = 0;
+                foreach (c; spec[1..$])
+                {
+                    if (c < '0' || c > '9') { precision = 6; break; }
+                    precision = precision * 10 + (c - '0');
+                }
+            }
+            appendFloatFixed(s, cast(double)arg, precision);
+            return;
+        }
+    }
+
+    s.append(arg); // unknown spec, or non-numeric type: default formatting
+}
+
+private void appendHex(ref String s, ulong value, bool uppercase)
+{
+    if (value == 0) { s.append("0"); return; }
+
+    static immutable char[16] lower = "0123456789abcdef";
+    static immutable char[16] upper = "0123456789ABCDEF";
+    const(char[16])* digits = uppercase ? &upper : &lower;
+    char[16] buf;
+    size_t pos = buf.length;
+    while (value > 0)
+    {
+        pos--;
+        buf[pos] = (*digits)[value & 0xF];
+        value >>= 4;
+    }
+    s.append(cast(string)buf[pos..$]);
+}
+
+private void appendBinary(ref String s, ulong value)
+{
+    if (value == 0)
+    {
+        s.append("0");
+        return;
+    }
+    char[64] buf;
+    size_t pos = buf.length;
+    while (value > 0)
+    {
+        pos--;
+        buf[pos] = cast(char)('0' + (value & 1));
+        value >>= 1;
+    }
+    s.append(cast(string)buf[pos..$]);
+}
+
+private void appendFloatFixed(ref String s, double arg, int precision)
+{
+    if (arg != arg) { s.append("nan"); return; }
+    if (arg == double.infinity)  { s.append("inf");  return; }
+    if (arg == -double.infinity) { s.append("-inf"); return; }
+    if (arg < 0.0) { s.append("-"); arg = -arg; }
+
+    long integerPart = cast(long)arg;
+    s.append(integerPart);
+
+    if (precision <= 0.0)
+        return;
+
+    s.append(".");
+
+    double fractionalPart = arg - integerPart;
+    char[24] buf;
+    size_t pos = 0;
+    while (pos < precision)
+    {
+        fractionalPart *= 10;
+        int digit = cast(int)fractionalPart;
+        buf[pos++] = cast(char)('0' + digit);
+        fractionalPart -= digit;
+    }
+    s.append(cast(string)buf[0..pos]); // no trailing-zero stripping here
 }

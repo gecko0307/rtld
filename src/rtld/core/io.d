@@ -376,7 +376,7 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
 }
 
 ///
-void printFmtArg(T)(OutputStream stream, T arg, const(char)[] spec) @nogc nothrow
+private void printArgSpec(T)(OutputStream stream, T arg, const(char)[] spec) @nogc nothrow
 {
     if (spec.length == 0)
     {
@@ -463,12 +463,12 @@ private void printFloatFixed(OutputStream stream, double arg, int precision) @no
     if (arg != arg) { printStr(stream, "nan"); return; }
     if (arg == double.infinity)  { printStr(stream, "inf");  return; }
     if (arg == -double.infinity) { printStr(stream, "-inf"); return; }
-    if (arg < 0) { printStr(stream, "-"); arg = -arg; }
+    if (arg < 0.0) { printStr(stream, "-"); arg = -arg; }
 
     long integerPart = cast(long)arg;
     print(stream, integerPart);
 
-    if (precision <= 0)
+    if (precision <= 0.0)
         return;
 
     printStr(stream, ".");
@@ -517,45 +517,6 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
     {
         if (fmt[i] == '{') 
         {
-            /*
-            size_t j = i + 1;
-            int argIdx = 0;
-            bool hasIndex = false;
-
-            while (j < fmt.length && fmt[j] >= '0' && fmt[j] <= '9') 
-            {
-                argIdx = (argIdx * 10) + (fmt[j] - '0');
-                hasIndex = true;
-                j++;
-            }
-
-            if (j < fmt.length && fmt[j] == '}' && hasIndex) 
-            {
-                if (i > lastIdx) {
-                    printStr(stream, fmt[lastIdx..i]);
-                }
-
-                bool found = false;
-
-                static foreach (idx, Arg; Args)
-                {
-                    if (!found && argIdx == idx)
-                    {
-                        print(stream, args[idx]);
-                        found = true;
-                    }
-                }
-
-                if (!found)
-                {
-                    printStr(stream, "{?}");
-                }
-                
-                i = j; 
-                lastIdx = i + 1;
-            }
-            */
-            
             size_t j = i + 1;
             int argIdx = 0;
             bool hasIndex = false;
@@ -593,8 +554,7 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
                 {
                     if (!found && argIdx == idx)
                     {
-                        //print(stream, args[idx]);
-                        printFmtArg(stream, args[idx], spec);
+                        printArgSpec(stream, args[idx], spec);
                         found = true;
                     }
                 }
