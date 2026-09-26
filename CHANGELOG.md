@@ -4,6 +4,7 @@ RTLD 0.6.0 - TBD
   * New module `rtld.core.conv`
   * New module `rtld.core.errno`
   * Generic output: to stdout, stderr, or a file
+  * stdin and `LineReader`
 * **rtld.data**
   * New package `rtld.data` for data formats implementations. Currently it contains JSON parser (`rtld.data.json`) and Varint encoder/decoder (`rtld.data.varint`)
 * **rtld.container**
