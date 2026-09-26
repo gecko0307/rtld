@@ -1,3 +1,10 @@
+RTLD 0.6.1 - 26 Sep, 2026
+-------------------------
+* **rtld.text**
+  * `printString` formatting contract
+* **rtld:runtime**
+  * Fix compilation.
+
 RTLD 0.6.0 - 26 Sep, 2026
 -------------------------
 * **rtld.core**
