@@ -31,52 +31,6 @@ version(Posix):
 
 import rtld.sys.posix.sys.types;
 
-version(linux)
-{
-    struct stat_t
-    {
-        ulong st_dev;
-        ulong st_ino;
-        ulong st_nlink;
-        uint  st_mode;
-        uint  st_uid;
-        uint  st_gid;
-        int   __pad0;
-        ulong st_rdev;
-        long  st_size;
-        long  st_blksize;
-        long  st_blocks;
-        long  st_atime; ulong st_atime_nsec;
-        long  st_mtime; ulong st_mtime_nsec;
-        long  st_ctime; ulong st_ctime_nsec;
-        long[3] __unused;
-    }
-}
-version(OSX)
-{
-    struct stat_t
-    {
-        int      st_dev;
-        uint     st_mode;
-        ushort   st_nlink;
-        ulong    st_ino;
-        uint     st_uid;
-        uint     st_gid;
-        int      st_rdev;
-        long     st_atime; ulong st_atime_nsec;
-        long     st_mtime; ulong st_mtime_nsec;
-        long     st_ctime; ulong st_ctime_nsec;
-        long     st_birthtime; ulong st_birthtime_nsec;
-        long     st_size;
-        long     st_blocks;
-        int      st_blksize;
-        uint     st_flags;
-        uint     st_gen;
-        int      st_lspare;
-        long[2]  st_qspare;
-    }
-}
-
 extern(C) @nogc nothrow
 {
     int fstat(int fd, stat_t* buf);

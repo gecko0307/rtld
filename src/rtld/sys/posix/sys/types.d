@@ -36,7 +36,7 @@ alias pid_t = int;
 alias size_t_posix = size_t;
 alias ssize_t = ptrdiff_t;
 
-version(Linux)
+version(linux)
 {
     struct stat_t
     {
@@ -56,10 +56,11 @@ version(Linux)
         long  st_ctime; ulong st_ctime_nsec;
         long[3] __unused;
     }
-    extern(C) @nogc nothrow int fstat(int fd, stat_t* buf);
 }
-version(OSX) {
-    struct stat_t {
+version(OSX)
+{
+    struct stat_t
+    {
         int      st_dev;
         uint     st_mode;
         ushort   st_nlink;
@@ -71,7 +72,7 @@ version(OSX) {
         long     st_mtime; ulong st_mtime_nsec;
         long     st_ctime; ulong st_ctime_nsec;
         long     st_birthtime; ulong st_birthtime_nsec;
-        long     st_size; // Размер файла
+        long     st_size;
         long     st_blocks;
         int      st_blksize;
         uint     st_flags;
@@ -79,5 +80,4 @@ version(OSX) {
         int      st_lspare;
         long[2]  st_qspare;
     }
-    extern(C) @nogc nothrow int fstat(int fd, stat_t* buf);
 }

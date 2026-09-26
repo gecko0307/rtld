@@ -67,8 +67,8 @@ void init() @nogc nothrow
     }
     else version(Posix)
     {
-        _stdout.fd = STDOUT_FILENO;
-        _stderr.fd = STDERR_FILENO;
+        _stdout.handle = STDOUT_FILENO;
+        _stderr.handle = STDERR_FILENO;
     }
  
     _stdStreamsInitialized = true;
@@ -107,7 +107,7 @@ void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
     }
     else version(Posix)
     {
-        write(stream.fd, msg.ptr, cast(size_t_posix)msg.length);
+        write(stream.handle, msg.ptr, cast(size_t_posix)msg.length);
     }
 }
 

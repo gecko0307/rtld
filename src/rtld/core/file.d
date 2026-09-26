@@ -29,7 +29,7 @@ module rtld.core.file;
 
 version(Posix)
 {
-    import rtld.sys.posix.fnctl;
+    import rtld.sys.posix.fcntl;
     import rtld.sys.posix.unistd;
     
     alias PlatformHandle = int;

@@ -34,7 +34,7 @@ public
     import rtld.sys.posix.sys.types;
     import rtld.sys.posix.sys.stat;
     import rtld.sys.posix.dlfcn;
-    import rtld.sys.posix.fnctl;
+    import rtld.sys.posix.fcntl;
     import rtld.sys.posix.pthread;
     import rtld.sys.posix.time;
     import rtld.sys.posix.unistd;
