@@ -59,6 +59,25 @@ If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rt
 
 ## Examples
 
+"Hello, World" program:
+
+```d
+import rtld;
+
+void main()
+{
+    printLn("Hello, World!");
+}
+```
+
+Reading a file to string:
+
+```d
+String s = String.fromFile("file.txt");
+printLn(s);
+s.free();
+```
+
 Formatted output (to stdout and a file):
 
 ```d

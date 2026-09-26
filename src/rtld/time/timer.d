@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2025-2026 Timur Gafarov.
+Copyright (c) 2026 Timur Gafarov.
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -41,57 +41,157 @@ private
     version(Windows)
     {
         __gshared LARGE_INTEGER t_freq;
-        __gshared LARGE_INTEGER t_last;
         __gshared bool t_initialized = false;
     }
     version(Posix)
     {
-        __gshared timespec t_last;
         __gshared bool t_initialized = false;
     }
+    
+    __gshared double _lastTime = 0.0;
 }
 
-double getTimeStep() @nogc nothrow
+double getTime() @nogc nothrow
 {
     version(Windows)
     {
         if (!t_initialized)
         {
-            // First call
             QueryPerformanceFrequency(&t_freq);
-            QueryPerformanceCounter(&t_last);
             t_initialized = true;
-            return 0.0;
         }
 
         LARGE_INTEGER counter;
         QueryPerformanceCounter(&counter);
 
-        double dt = cast(double)(counter.QuadPart - t_last.QuadPart) / cast(double)(t_freq.QuadPart);
-        t_last = counter;
-        return dt;
+        return cast(double)counter.QuadPart /
+               cast(double)t_freq.QuadPart;
     }
     else version(Posix)
     {
-        if (!t_initialized)
-        {
-            // First call
-            clock_gettime(CLOCK_MONOTONIC, &t_last);
-            t_initialized = true;
-            return 0.0;
-        }
+        timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
 
-        timespec counter;
-        clock_gettime(CLOCK_MONOTONIC, &counter);
-
-        double dt = cast(double)(counter.tv_sec - t_last.tv_sec) + 
-                    cast(double)(counter.tv_nsec - t_last.tv_nsec) / 1_000_000_000.0;
-        t_last = counter;
-        return dt;
+        return cast(double)ts.tv_sec +
+               cast(double)ts.tv_nsec / 1_000_000_000.0;
     }
     else
     {
-        // Not implemented
         return 0.0;
     }
+}
+
+double getTimeStep() @nogc nothrow
+{
+    double currentTime = getTime();
+
+    if (_lastTime == 0.0)
+    {
+        _lastTime = currentTime;
+        return 0.0;
+    }
+
+    double dt = currentTime - _lastTime;
+    _lastTime = currentTime;
+
+    return dt;
+}
+
+struct Stopwatch
+{
+   private:
+    double _startTime = 0.0;
+    double _elapsedTime = 0.0;
+    bool _running = false;
+
+   public:
+    void start() @nogc nothrow
+    {
+        if (!_running)
+        {
+            _startTime = getTime();
+            _running = true;
+        }
+    }
+
+    void stop() @nogc nothrow
+    {
+        if (_running)
+        {
+            _elapsedTime += getTime() - _startTime;
+            _running = false;
+        }
+    }
+
+    void reset() @nogc nothrow
+    {
+        _startTime = 0.0;
+        _elapsedTime = 0.0;
+        _running = false;
+    }
+
+    double elapsed() const @nogc nothrow
+    {
+        if (_running)
+            return _elapsedTime + (getTime() - _startTime);
+
+        return _elapsedTime;
+    }
+
+    bool running() const @nogc nothrow
+    {
+        return _running;
+    }
+}
+
+private
+{
+    enum double _NANOSECONDS = 1000_000_000.0;
+    enum double _MICROSECONDS = 1000_000.0;
+    enum double _MILLISECONDS = 1000.0;
+    enum double _INV_MINUTE = 1.0 / 60.0;
+    enum double _INV_HOUR = 1.0 / 3600.0;
+    enum double _INV_DAY = 1.0 / 86400.0;
+}
+
+pragma(inline, true)
+double nanoseconds(double s) pure @nogc nothrow
+{
+    return s * _NANOSECONDS;
+}
+
+pragma(inline, true)
+double microseconds(double s) pure @nogc nothrow
+{
+    return s * _MICROSECONDS;
+}
+
+pragma(inline, true)
+double milliseconds(double s) pure @nogc nothrow
+{
+    return s * _MILLISECONDS;
+}
+
+pragma(inline, true)
+double seconds(double s) pure @nogc nothrow
+{
+    return s;
+}
+
+pragma(inline, true)
+double minutes(double s) pure @nogc nothrow
+{
+    return s * _INV_MINUTE;
+}
+
+pragma(inline, true)
+double hours(double s) pure @nogc nothrow
+{
+    return s * _INV_HOUR;
+}
+
+pragma(inline, true)
+double days(double s) pure @nogc nothrow
+{
+    return s * _INV_DAY;
 }
