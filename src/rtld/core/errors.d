@@ -37,49 +37,49 @@ import rtld.core.process;
 pragma(inline, true)
 void error(string msg) nothrow @nogc
 {
-    printStrLn(msg);
+    stdout.printStrLn(msg);
     exit(1);
 }
 
 pragma(inline, true)
 void switchError(string file, size_t line) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: no appropriate switch clause found", file, line);
+    stdout.printFmtLn("{0}:{1}: no appropriate switch clause found", file, line);
     exit(1);
 }
 
 pragma(inline, true)
 void assertionError(string file, size_t line) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: assertion failed", file, line);
+    stdout.printFmtLn("{0}:{1}: assertion failed", file, line);
     exit(1);
 }
 
 pragma(inline, true)
 void assertionErrorMsg(string file, size_t line, string msg) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: assertion failed: {2}", file, line, msg);
+    stdout.printFmtLn("{0}:{1}: assertion failed: {2}", file, line, msg);
     exit(1);
 }
 
 pragma(inline, true)
 void sliceLengthMismatchError(size_t dstlen, size_t srclen) nothrow @nogc
 {
-    printFmtLn("Mismatched slice lengths in copy ({0} vs {1})", dstlen, srclen);
+    stdout.printFmtLn("Mismatched slice lengths in copy ({0} vs {1})", dstlen, srclen);
     exit(1);
 }
 
 pragma(inline, true)
 void arrayBoundsSimpleError(string file, uint line) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: array bounds violation (index or slice out of range)", file, line);
+    stdout.printFmtLn("{0}:{1}: array bounds violation (index or slice out of range)", file, line);
     exit(1);
 }
 
 pragma(inline, true)
 void arrayIndexError(string file, uint line, size_t index, size_t length) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}",
+    stdout.printFmtLn("{0}:{1}: array index out of range: index {2} exceeds length {3}",
         file, line, index, length);
     exit(1);
 }
@@ -87,7 +87,7 @@ void arrayIndexError(string file, uint line, size_t index, size_t length) nothro
 pragma(inline, true) 
 void arrayBoundsSliceError(string file, size_t line, size_t lower, size_t upper, size_t length) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: array slice bounds out of range: [{2} .. {3}] exceeds length {4}", 
+    stdout.printFmtLn("{0}:{1}: array slice bounds out of range: [{2} .. {3}] exceeds length {4}", 
         file, line, lower, upper, length);
     exit(1);
 }
@@ -95,14 +95,14 @@ void arrayBoundsSliceError(string file, size_t line, size_t lower, size_t upper,
 pragma(inline, true)
 void outOfMemoryError() nothrow @nogc
 {
-    printStrLn("Out of memory");
+    stdout.printStrLn("Out of memory");
     exit(1);
 }
 
 pragma(inline, true)
 void outOfMemoryError(string file, size_t line) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: out of memory", file, line);
+    stdout.printFmtLn("{0}:{1}: out of memory", file, line);
     exit(1);
 }
 
@@ -110,7 +110,7 @@ void outOfMemoryError(string file, size_t line) nothrow @nogc
 pragma(inline, true)
 void doubleFreeError() nothrow @nogc
 {
-    printStrLn("Double free or memory corruption");
+    stdout.printStrLn("Double free or memory corruption");
     exit(1);
 }
 
@@ -118,6 +118,6 @@ void doubleFreeError() nothrow @nogc
 pragma(inline, true)
 void doubleFreeError(string file, size_t line) nothrow @nogc
 {
-    printFmtLn("{0}:{1}: double free or memory corruption", file, line);
+    stdout.printFmtLn("{0}:{1}: double free or memory corruption", file, line);
     exit(1);
 }

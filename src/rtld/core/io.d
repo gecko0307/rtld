@@ -151,7 +151,7 @@ void printStrLn(const(char)[] msg) @nogc nothrow
 }
 
 ///
-void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
+private void printArg(T)(OutputStream stream, T arg, bool quote) @nogc nothrow
 {
     static if (isString!T)
     {
@@ -194,7 +194,7 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         if (arg < 0)
         {
             printStr(stream, "-");
-            arg = -arg;
+            arg = cast(T)-arg;
         }
         
         char[20] buf;
@@ -233,7 +233,7 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         }
 
         long integerPart = cast(long)arg;
-        print(stream, integerPart);
+        printArg(stream, integerPart, false);
         printStr(stream, ".");
 
         double fractionalPart = arg - integerPart;
@@ -268,7 +268,7 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         {
             if (i > 0)
                 printStr(stream, ", ");
-            print(stream, element, true);
+            printArg(stream, element, true);
         }
         printStr(stream, "]");
     }
@@ -304,7 +304,7 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         {
             static if (i > 0)
                 printStr(stream, ", ");
-            print(stream, arg.tupleof[i], true);
+            printArg(stream, arg.tupleof[i], true);
         }
         printStr(stream, ")");
     }
@@ -380,7 +380,7 @@ private void printArgSpec(T)(OutputStream stream, T arg, const(char)[] spec) @no
 {
     if (spec.length == 0)
     {
-        print(stream, arg);
+        printArg(stream, arg, false);
         return;
     }
 
@@ -419,7 +419,7 @@ private void printArgSpec(T)(OutputStream stream, T arg, const(char)[] spec) @no
         }
     }
 
-    print(stream, arg); // unknown spec, or non-numeric type: default formatting
+    printArg(stream, arg, false); // unknown spec, or non-numeric type: default formatting
 }
 
 private void printHex(OutputStream stream, ulong value, bool uppercase) @nogc nothrow
@@ -488,24 +488,35 @@ private void printFloatFixed(OutputStream stream, double arg, int precision) @no
 
 ///
 pragma(inline, true)
-void print(T)(T arg, bool quote = false) @nogc nothrow
+void print(A...)(OutputStream stream, A args) @nogc nothrow
 {
-    print(_stdout, arg, quote);
+    static foreach(arg; args)
+        printArg(stream, arg, false);
 }
 
 ///
 pragma(inline, true)
-void printLn(T)(OutputStream stream, T arg) @nogc nothrow
+void print(Args...)(Args args) @nogc nothrow
+    if (Args.length > 0 && !is(Args[0] == OutputStream))
 {
-    print(stream, arg);
+    .print(_stdout, args);
+}
+
+///
+pragma(inline, true)
+void printLn(A...)(OutputStream stream, A args) @nogc nothrow
+{
+    static foreach(arg; args)
+        printArg(stream, arg, false);
     printStr(stream, "\n");
 }
 
 ///
 pragma(inline, true)
-void printLn(T)(T arg) @nogc nothrow
+void printLn(Args...)(Args args) @nogc nothrow
+    if (Args.length > 0 && !is(Args[0] == OutputStream))
 {
-    printLn(_stdout, arg);
+    .printLn(_stdout, args);
 }
 
 ///
@@ -576,13 +587,6 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
 
 ///
 pragma(inline, true)
-void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
-{
-    printFmt(_stdout, fmt, args);
-}
-
-///
-pragma(inline, true)
 void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
     printFmt(stream, fmt, args);
@@ -593,7 +597,7 @@ void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nog
 pragma(inline, true)
 void printFmtLn(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
-    printFmtLn(_stdout, fmt, args);
+    .printFmtLn(_stdout, fmt, args);
 }
 
 ///

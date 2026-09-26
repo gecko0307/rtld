@@ -217,7 +217,7 @@ class JSONValue: Owner
                     .print(stream, "false");
                 break;
             case JSONType.String:
-                .printStr(stream, asString);
+                .print(stream, "\"", asString, "\"");
                 break;
             case JSONType.Array:
                 .printStr(stream, "[");

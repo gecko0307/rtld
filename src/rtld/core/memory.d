@@ -148,23 +148,23 @@ else
         if (!_memoryProfilerEnabled)
             return;
         
-        printLn("=== MEMORY LEAK REPORT ===");
+        stdout.printLn("=== MEMORY LEAK REPORT ===");
         
         lockProfiler();
         if (profilerHead is null)
         {
-            printLn("No allocations.");
+            stdout.printLn("No allocations.");
             unlockProfiler();
-            printLn("==========================");
+            stdout.printLn("==========================");
             return;
         }
 
-        printFmtLn("Active allocations: {0}, total bytes: {1}\n", _allocationCount, _allocatedMemory);
+        stdout.printFmtLn("Active allocations: {0}, total bytes: {1}\n", _allocationCount, _allocatedMemory);
 
         MPRecord* current = profilerHead;
         while(current !is null)
         {
-            printFmtLn("Leak: {0} ({1} byte(s)) @ {2}:{3}",
+            stdout.printFmtLn("Leak: {0} ({1} byte(s)) @ {2}:{3}",
                 current.name,
                 current.size,
                 current.file,
@@ -172,7 +172,7 @@ else
             );
             current = current.next;
         }
-        printLn("==========================");
+        stdout.printLn("==========================");
         unlockProfiler();
     }
     
