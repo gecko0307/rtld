@@ -40,6 +40,8 @@ module rtld.logger.logger;
 import rtld.core.io;
 import rtld.core.file;
 import rtld.text.str;
+import rtld.text.format;
+import rtld.time.datetime;
 
 /**
  * Log levels for controlling message verbosity and severity.
@@ -86,7 +88,7 @@ struct LogOutputOptions
     bool printToBuffer;
     bool printTimestamp;
     bool printLogLevel;
-    String filename;
+    string filename;
     String function() dateTimePrinter;
 }
 
@@ -94,6 +96,7 @@ private
 {
     __gshared LogLevel logLevel = LogLevel.All;
     
+    __gshared String _logFilename;
     __gshared File _logFile;
     __gshared bool _logFileInitialized = false;
     __gshared String _logBuffer;
@@ -109,6 +112,7 @@ private
     };
 }
 
+///
 void finalize()
 {
     if (_logFile.isValid)
@@ -119,7 +123,29 @@ void finalize()
     }
     
     _logBuffer.free();
-    _logOutputOptions.filename.free();
+    _logFilename.free();
+}
+
+///
+void setLogOutputOptions(LogOutputOptions* options)
+{
+    if (_logFile.isValid)
+    {
+        _logFile.flush();
+        _logFile.close();
+        _logFileInitialized = false;
+    }
+    
+    _logFilename.free();
+    
+    _logOutputOptions = *options;
+    
+    // Store a private copy for safety
+    _logFilename = String(_logOutputOptions.filename);
+    _logOutputOptions.filename = _logFilename.toString;
+    
+    if (_logOutputOptions.dateTimePrinter is null)
+        _logOutputOptions.dateTimePrinter = &defaultDateTimePrinter;
 }
 
 /**
@@ -130,8 +156,9 @@ void finalize()
  */
 void setLogFilename(string filename)
 {
+    _logFilename = String(filename);
+    _logOutputOptions.filename = _logFilename.toString;
     _logOutputOptions.printToFile = true;
-    _logOutputOptions.filename = String(filename);
 }
 
 /**
@@ -157,14 +184,10 @@ string logBuffer()
  */
 String defaultDateTimePrinter()
 {
-    /*
-    auto now = Clock.currTime;
-    return format("[%02d.%02d.%04d %02d:%02d:%02d]",
+    DateTime now = currentTimeUTC();
+    return format("[{0}.{1}.{2} {3}:{4}:{5}]",
         now.day, now.month, now.year,
-        now.hour, now.minute, now.second);
-    */
-    // TODO
-    return String("");
+        now.hours, now.minutes, now.seconds);
 }
 
 /**
@@ -224,7 +247,7 @@ void log(A...)(LogLevel level, A args)
     
     /*
     // TODO:
-    if (_logOutputOptions.printToFile && _logOutputOptions.filename.length)
+    if (_logOutputOptions.printToFile && _logFilename.length)
     {
         if (_logFileInitialized)
         {
@@ -247,7 +270,7 @@ void log(A...)(LogLevel level, A args)
         }
         else
         {
-            _logFile = File(_logOutputOptions.filename, "w");
+            _logFile = File(_logFilename.toString, "w");
             if ()
             {
                 _logFileInitialized = true;
@@ -257,6 +280,7 @@ void log(A...)(LogLevel level, A args)
                 log("[Logger Error] Failed to open log file: ", e.msg);
                 _logOutputOptions.filename = "";
                 _logOutputOptions.printToFile = false;
+                _logFilename.free();
             }
         }
     }
@@ -276,4 +300,60 @@ void log(A...)(LogLevel level, A args)
     */
     
     timestamp.free();
+}
+
+
+/**
+ * Logs a debug message.
+ *
+ * Params:
+ *   args = The message arguments (variadic).
+ */
+void logDebug(A...)(A args)
+{
+    log(LogLevel.Debug, args);
+}
+
+/**
+ * Logs an informational message.
+ *
+ * Params:
+ *   args = The message arguments (variadic).
+ */
+void logInfo(A...)(A args)
+{
+    log(LogLevel.Info, args);
+}
+
+/**
+ * Logs a warning message.
+ *
+ * Params:
+ *   args = The message arguments (variadic).
+ */
+void logWarning(A...)(A args)
+{
+    log(LogLevel.Warning, args);
+}
+
+/**
+ * Logs an error message.
+ *
+ * Params:
+ *   args = The message arguments (variadic).
+ */
+void logError(A...)(A args)
+{
+    log(LogLevel.Error, args);
+}
+
+/**
+ * Logs a fatal error message.
+ *
+ * Params:
+ *   args = The message arguments (variadic).
+ */
+void logFatalError(A...)(A args)
+{
+    log(LogLevel.FatalError, args);
 }

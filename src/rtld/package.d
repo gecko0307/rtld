@@ -35,6 +35,7 @@ public
     import rtld.gl;
     import rtld.gui;
     import rtld.hash;
+    import rtld.logger;
     import rtld.math;
     import rtld.memory;
     import rtld.random;
@@ -79,6 +80,7 @@ void rtldFinalize()
     }
     else
     {
+        rtld.logger.logger.finalize();
         rtld.core.io.finalize();
     }
 }
