@@ -51,6 +51,7 @@ private
     __gshared double _lastTime = 0.0;
 }
 
+///
 double getTime() @nogc nothrow
 {
     version(Windows)
@@ -81,6 +82,7 @@ double getTime() @nogc nothrow
     }
 }
 
+///
 double getTimeStep() @nogc nothrow
 {
     double currentTime = getTime();
@@ -97,6 +99,7 @@ double getTimeStep() @nogc nothrow
     return dt;
 }
 
+///
 struct Stopwatch
 {
    private:
@@ -105,6 +108,8 @@ struct Stopwatch
     bool _running = false;
 
    public:
+    
+    ///
     void start() @nogc nothrow
     {
         if (!_running)
@@ -114,6 +119,7 @@ struct Stopwatch
         }
     }
 
+    ///
     void stop() @nogc nothrow
     {
         if (_running)
@@ -123,6 +129,7 @@ struct Stopwatch
         }
     }
 
+    ///
     void reset() @nogc nothrow
     {
         _startTime = 0.0;
@@ -130,6 +137,7 @@ struct Stopwatch
         _running = false;
     }
 
+    ///
     double elapsed() const @nogc nothrow
     {
         if (_running)
@@ -138,6 +146,7 @@ struct Stopwatch
         return _elapsedTime;
     }
 
+    ///
     bool running() const @nogc nothrow
     {
         return _running;
@@ -154,42 +163,49 @@ private
     enum double _INV_DAY = 1.0 / 86400.0;
 }
 
+/// Converts seconds to nanoseconds.
 pragma(inline, true)
 double nanoseconds(double s) pure @nogc nothrow
 {
     return s * _NANOSECONDS;
 }
 
+/// Converts seconds to microseconds.
 pragma(inline, true)
 double microseconds(double s) pure @nogc nothrow
 {
     return s * _MICROSECONDS;
 }
 
+/// Converts seconds to milliseconds.
 pragma(inline, true)
 double milliseconds(double s) pure @nogc nothrow
 {
     return s * _MILLISECONDS;
 }
 
+/// No-op.
 pragma(inline, true)
 double seconds(double s) pure @nogc nothrow
 {
     return s;
 }
 
+/// Converts seconds to minutes.
 pragma(inline, true)
 double minutes(double s) pure @nogc nothrow
 {
     return s * _INV_MINUTE;
 }
 
+/// Converts seconds to hours.
 pragma(inline, true)
 double hours(double s) pure @nogc nothrow
 {
     return s * _INV_HOUR;
 }
 
+/// Converts seconds to days.
 pragma(inline, true)
 double days(double s) pure @nogc nothrow
 {
