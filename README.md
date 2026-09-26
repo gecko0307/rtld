@@ -55,3 +55,33 @@ If you want to replace Phobos/druntime, use `no-druntime` configuration, add `rt
     "-debuglib="
 ]
 ```
+
+## Examples
+
+Formatted output (to stdout and a file):
+
+```d
+struct Property
+{
+    string name;
+    int value;
+}
+
+string name = "Test";
+int code = 200;
+float num = 0.5f;
+Property prop = Property("Money", 100);
+printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
+
+string utf8Str = "Обычная строка";
+wstring utf16Str = "Широкая строка"w;
+
+auto openResult = File.open("test.txt", FileAccessMode.Write);
+if (!openResult.success)
+    return 1;
+File file = openResult.value;
+file.printLn("Hello, World!");
+file.printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
+file.printFmtLn("Unicode: {0} | {1}", utf8Str, utf16Str);
+file.close();
+```
