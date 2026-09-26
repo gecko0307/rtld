@@ -85,3 +85,16 @@ file.printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num,
 file.printFmtLn("Unicode: {0} | {1}", utf8Str, utf16Str);
 file.close();
 ```
+
+GC-free string formatting with `String` type:
+
+```d
+String s = format(
+    "Name: {0}, age: {1}, employed: {2}, weight: {3}",
+    "John Doe",
+    30,
+    true,
+    80.0f);
+printLn(s);
+s.free();
+```

@@ -179,6 +179,10 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         if (quote)
             printStr(stream, "\"");
     }
+    else static if (is(T == bool))
+    {
+        printStr(stream, arg ? "true" : "false");
+    }
     else static if (isInteger!T)
     {
         if (arg == 0)
@@ -256,10 +260,6 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
         }
 
         printStr(stream, cast(string)buf[0..pos]);
-    }
-    else static if (is(T == bool))
-    {
-        printStr(stream, arg ? "true" : "false");
     }
     else static if (isArray!T)
     {

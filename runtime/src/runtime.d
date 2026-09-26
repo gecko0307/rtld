@@ -29,6 +29,8 @@ module runtime;
 
 import rtld;
 
+import rtld.libc.string;
+
 char[][] makeArgs(int argc, char** argv)
 {
     memoryProfilerEnabled = false;

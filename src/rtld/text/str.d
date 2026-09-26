@@ -431,7 +431,7 @@ struct String
                 pos--;
             }
 
-            this ~= buf[0 .. pos];
+            this ~= buf[0..pos];
         }
         else static if (isArray!T)
         {
@@ -444,6 +444,30 @@ struct String
             }
             this ~= "]";
         }
+        else static if (__traits(hasMember, T, "printString"))
+        {
+            static if (isObject!T)
+            {
+                if (val is null)
+                {
+                    this ~= "null";
+                    return;
+                }
+            }
+            val.printString(&this);
+        }
+        else static if (isConvertibleToString!T)
+        {
+            static if (isObject!T)
+            {
+                if (val is null)
+                {
+                    this ~= "null";
+                    return;
+                }
+            }
+            this ~= val.toString();
+        }
         else static if (is(T == struct))
         {
             this ~= __traits(identifier, T);
@@ -455,19 +479,6 @@ struct String
                 this ~= val.tupleof[i];
             }
             this ~= ")";
-        }
-        else static if (__traits(hasMember, T, "toString") && 
-                    is(typeof(val.toString()): const(char)[]))
-        {
-            static if (isClass!T || isInterface!T)
-            {
-                if (val is null)
-                {
-                    this ~= "null";
-                    return;
-                }
-            }
-            this ~= val.toString();
         }
         else static if (isObject!T)
         {
