@@ -111,6 +111,7 @@ void finalize() @nogc nothrow
     return _stdin;
 }
 
+///
 void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
 {
     if (msg.length == 0 || !stream.isValid())
@@ -127,12 +128,14 @@ void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
     }
 }
 
+///
 pragma(inline, true)
 void printStr(const(char)[] msg) @nogc nothrow
 {
     printStr(_stdout, msg);
 }
 
+///
 pragma(inline, true)
 void printStrLn(OutputStream stream, const(char)[] msg) @nogc nothrow
 {
@@ -140,12 +143,14 @@ void printStrLn(OutputStream stream, const(char)[] msg) @nogc nothrow
     printStr(stream, "\n");
 }
 
+///
 pragma(inline, true)
 void printStrLn(const(char)[] msg) @nogc nothrow
 {
     printStrLn(_stdout, msg);
 }
 
+///
 void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
 {
     static if (isString!T)
@@ -370,12 +375,14 @@ void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
     }
 }
 
+///
 pragma(inline, true)
 void print(T)(T arg, bool quote = false) @nogc nothrow
 {
     print(_stdout, arg, quote);
 }
 
+///
 pragma(inline, true)
 void printLn(T)(OutputStream stream, T arg) @nogc nothrow
 {
@@ -383,12 +390,14 @@ void printLn(T)(OutputStream stream, T arg) @nogc nothrow
     printStr(stream, "\n");
 }
 
+///
 pragma(inline, true)
 void printLn(T)(T arg) @nogc nothrow
 {
     printLn(_stdout, arg);
 }
 
+///
 void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
     size_t lastIdx = 0;
@@ -440,12 +449,14 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
         printStr(stream, fmt[lastIdx..$]);
 }
 
+///
 pragma(inline, true)
 void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
     printFmt(_stdout, fmt, args);
 }
 
+///
 pragma(inline, true)
 void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
@@ -453,8 +464,105 @@ void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nog
     printStr(stream, "\n");
 }
 
+///
 pragma(inline, true)
 void printFmtLn(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
     printFmtLn(_stdout, fmt, args);
+}
+
+///
+size_t readRaw(InputStream stream, void[] buffer) @nogc nothrow
+{
+    FileIOResult result = stream.read(buffer);
+    if (result.success)
+        return result.value;
+    else
+        return -1;
+}
+
+///
+struct LineReader
+{
+   private:
+    InputStream _stream;
+    char[256] _buf = void;
+    size_t _start = 0;
+    size_t _end = 0;
+
+   public:
+    this(InputStream stream) @nogc nothrow
+    {
+        _stream = stream;
+    }
+
+    /**
+     * Returns a slice of `outBuffer` containing the line (no trailing \n / \r\n),
+     * or an empty slice with `.length == 0 && ok == false` on EOF/error.
+     */
+    bool readLine(char[] outBuffer, out size_t length) @nogc nothrow
+    {
+        length = 0;
+
+        while(true)
+        {
+            // scan what's already buffered for a newline
+            foreach (i; _start.._end)
+            {
+                if (_buf[i] == '\n')
+                {
+                    size_t lineEnd = i;
+                    if (lineEnd > _start && _buf[lineEnd - 1] == '\r')
+                        lineEnd--;
+
+                    size_t n = lineEnd - _start;
+                    if (n > outBuffer.length)
+                        n = outBuffer.length; // truncate on overflow
+
+                    outBuffer[0..n] = _buf[_start.._start + n];
+                    length = n;
+                    _start = i + 1;
+                    return true;
+                }
+            }
+
+            // no newline yet — compact remaining bytes to front, then refill
+            if (_start > 0)
+            {
+                size_t remaining = _end - _start;
+                for (size_t i = 0; i < remaining; i++)
+                    _buf[i] = _buf[_start + i];
+                _start = 0;
+                _end = remaining;
+            }
+
+            if (_end == _buf.length)
+            {
+                // line longer than internal buffer: flush what we have, truncated
+                size_t n = _end > outBuffer.length ? outBuffer.length : _end;
+                outBuffer[0..n] = _buf[0..n];
+                length = n;
+                _start = _end = 0;
+                return true;
+            }
+
+            ptrdiff_t got = readRaw(_stream, _buf[_end..$]);
+            if (got <= 0)
+            {
+                // EOF/error: return whatever's left as a final partial line
+                if (_end > _start)
+                {
+                    size_t n = _end - _start;
+                    if (n > outBuffer.length) n = outBuffer.length;
+                    outBuffer[0..n] = _buf[_start.._start + n];
+                    length = n;
+                    _start = _end;
+                    return true;
+                }
+                return false;
+            }
+
+            _end += got;
+        }
+    }
 }

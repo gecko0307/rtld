@@ -35,7 +35,6 @@ public
     import rtld.gl;
     import rtld.gui;
     import rtld.hash;
-    import rtld.libc;
     import rtld.math;
     import rtld.memory;
     import rtld.random;

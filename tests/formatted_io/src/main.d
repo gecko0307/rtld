@@ -25,6 +25,7 @@ class SomeClass
 
 int main()
 {
+    // Printing to stdout
     string name = "Тест";
     int code = 200;
     float num = 0.5f;
@@ -42,6 +43,7 @@ int main()
     }
     printLn(someClass);
     
+    // Printing to file
     auto openResult = File.open("test.txt", FileAccessMode.Write);
     if (!openResult.success)
         return 1;
@@ -50,6 +52,18 @@ int main()
     file.printFmtLn("string: {0}, int: {1}, float: {2}, prop: {3}", name, code, num, prop);
     file.printFmtLn("Unicode: {0} | {1}", normalStr, wideStr);
     file.close();
+    
+    // Reading from stdin
+    printLn("Waiting for input");
+    LineReader reader = LineReader(stdin);
+    char[256] lineBuf;
+    size_t len;
+    while (reader.readLine(lineBuf, len))
+    {
+        string input = cast(string)lineBuf[0..len];
+        printFmtLn("You said: {0}", input);
+        break;
+    }
     
     return 0;
 }
