@@ -19,7 +19,7 @@ int main()
     int value = 10;
     
     logInfo("Hello, World!");
-    logDebug("value = ", value);
+    logDebugFmt("value = {0}", value);
     
     return 0;
 }

@@ -190,60 +190,43 @@ String defaultDateTimePrinter()
         now.hours, now.minutes, now.seconds);
 }
 
-/**
- * Logs a message at the specified log level.
- *
- * Params:
- *   level = The log level.
- *   args  = The message arguments (variadic).
- */
-void log(A...)(LogLevel level, A args)
+pragma(inline, true)
+private string levelToString(LogLevel level) @nogc nothrow
+{
+    final switch (level)
+    {
+        case LogLevel.All:        return "";
+        case LogLevel.Debug:      return "[Debug] ";
+        case LogLevel.Info:       return "[Info] ";
+        case LogLevel.Warning:    return "[Warning] ";
+        case LogLevel.Error:      return "[Error] ";
+        case LogLevel.FatalError: return "[Fatal error] ";
+    }
+}
+
+pragma(inline, true)
+private void logLine(alias printerFunc, Args...)(OutputStream stream, string levelStr, string timestampStr, Args args)
+{
+    if (_logOutputOptions.printTimestamp)
+        print(stream, timestampStr, " ");
+    if (levelStr.length)
+        printStr(stream, levelStr);
+    printerFunc(stream, args);
+}
+
+private void logImpl(alias printerFunc, Args...)(LogLevel level, Args args)
 {
     if (!_logOutputOptions.enabled || level < logLevel)
         return;
     
     String timestamp;
-    if (_logOutputOptions.dateTimePrinter)
+    if (_logOutputOptions.printTimestamp && _logOutputOptions.dateTimePrinter)
         timestamp = _logOutputOptions.dateTimePrinter();
     
-    string levelStr = "";
-    switch(level)
-    {
-        case LogLevel.Debug:
-            levelStr = "[Debug] ";
-            break;
-        case LogLevel.Info:
-            levelStr = "[Info] ";
-            break;
-        case LogLevel.Warning:
-            levelStr = "[Warning] ";
-            break;
-        case LogLevel.Error:
-            levelStr = "[Error] ";
-            break;
-        case LogLevel.FatalError:
-            levelStr = "[Fatal error] ";
-            break;
-        default: break;
-    }
+    string levelStr = _logOutputOptions.printLogLevel ? levelToString(level) : "";
     
     if (_logOutputOptions.printToStdout)
-    {
-        if (_logOutputOptions.printTimestamp)
-        {
-            if (_logOutputOptions.printLogLevel)
-                printLn(timestamp, levelStr, args);
-            else
-                printLn(timestamp, " ", args);
-        }
-        else
-        {
-            if (_logOutputOptions.printLogLevel)
-                printLn(levelStr, args);
-            else
-                printLn(args);
-        }
-    }
+        logLine!printerFunc(stdout, levelStr, timestamp.toString, args);
     
     if (_logOutputOptions.printToFile && _logFilename.length)
     {
@@ -268,21 +251,7 @@ void log(A...)(LogLevel level, A args)
         
         if (_logFileInitialized)
         {
-            if (_logOutputOptions.printTimestamp)
-            {
-                if (_logOutputOptions.printLogLevel)
-                    _logFile.printLn(timestamp, levelStr, args);
-                else
-                    _logFile.printLn(timestamp, " ", args);
-            }
-            else
-            {
-                if (_logOutputOptions.printLogLevel)
-                    _logFile.printLn(levelStr, args);
-                else
-                    _logFile.printLn(args);
-            }
-            
+            logLine!printerFunc(_logFile, levelStr, timestamp.toString, args);
             _logFile.flush();
         }
     }
@@ -304,14 +273,55 @@ void log(A...)(LogLevel level, A args)
 }
 
 /**
+ * Logs a message at the specified log level.
+ *
+ * Params:
+ *   level = The log level.
+ *   args  = The message arguments (variadic).
+ */
+pragma(inline, true)
+void log(A...)(LogLevel level, A args)
+{
+    logImpl!(printLn)(level, args);
+}
+
+/**
+ * Logs a formatted message at the specified log level.
+ *
+ * Params:
+ *   level = The log level.
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logFmt(A...)(LogLevel level, const(char)[] fmt, A args)
+{
+    logImpl!(printFmtLn)(level, fmt, args);
+}
+
+/**
  * Logs a debug message.
  *
  * Params:
  *   args = The message arguments (variadic).
  */
+pragma(inline, true)
 void logDebug(A...)(A args)
 {
     log(LogLevel.Debug, args);
+}
+
+/**
+ * Logs a formatted debug message.
+ *
+ * Params:
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logDebugFmt(A...)(const(char)[] fmt, A args)
+{
+    logFmt(LogLevel.Debug, fmt, args);
 }
 
 /**
@@ -320,9 +330,23 @@ void logDebug(A...)(A args)
  * Params:
  *   args = The message arguments (variadic).
  */
+pragma(inline, true)
 void logInfo(A...)(A args)
 {
     log(LogLevel.Info, args);
+}
+
+/**
+ * Logs a formatted informational message.
+ *
+ * Params:
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logInfoFmt(A...)(const(char)[] fmt, A args)
+{
+    logFmt(LogLevel.Info, fmt, args);
 }
 
 /**
@@ -331,9 +355,23 @@ void logInfo(A...)(A args)
  * Params:
  *   args = The message arguments (variadic).
  */
+pragma(inline, true)
 void logWarning(A...)(A args)
 {
     log(LogLevel.Warning, args);
+}
+
+/**
+ * Logs a formatted warning message.
+ *
+ * Params:
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logWarningFmt(A...)(const(char)[] fmt, A args)
+{
+    logFmt(LogLevel.Warning, fmt, args);
 }
 
 /**
@@ -342,9 +380,23 @@ void logWarning(A...)(A args)
  * Params:
  *   args = The message arguments (variadic).
  */
+pragma(inline, true)
 void logError(A...)(A args)
 {
     log(LogLevel.Error, args);
+}
+
+/**
+ * Logs a formatted error message.
+ *
+ * Params:
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logErrorFmt(A...)(const(char)[] fmt, A args)
+{
+    logFmt(LogLevel.Error, fmt, args);
 }
 
 /**
@@ -353,7 +405,21 @@ void logError(A...)(A args)
  * Params:
  *   args = The message arguments (variadic).
  */
+pragma(inline, true)
 void logFatalError(A...)(A args)
 {
     log(LogLevel.FatalError, args);
+}
+
+/**
+ * Logs a formatted fatal error message.
+ *
+ * Params:
+ *   fmt   = Formatting string.
+ *   args  = Formatting parameters (variadic).
+ */
+pragma(inline, true)
+void logFatalErrorFmt(A...)(const(char)[] fmt, A args)
+{
+    logFmt(LogLevel.FatalError, fmt, args);
 }
