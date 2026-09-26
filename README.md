@@ -112,5 +112,5 @@ class MyClass
 }
 
 MyClass c = New!MyClass(10);
-Delete(c)
+Delete(c);
 ```

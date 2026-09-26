@@ -30,7 +30,7 @@ module rtld.core._version;
 import rtld.core.linker;
 
 /// RTLD version number as a read-only structure.
-immutable LibraryVersion rtldVersion = LibraryVersion(0, 6, 1);
+immutable LibraryVersion rtldVersion = LibraryVersion(0, 7,0);
 
 /// RTLD version number as a read-only string.
-immutable string rtldVersionString = "0.6.1";
+immutable string rtldVersionString = "0.7.0";
