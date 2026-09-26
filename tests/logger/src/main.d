@@ -8,7 +8,7 @@ int main()
     LogOutputOptions logOptions = {
         enabled: true,
         printToStdout: true,
-        printToFile: false,
+        printToFile: true,
         printToBuffer: false,
         printTimestamp: true,
         printLogLevel: true,

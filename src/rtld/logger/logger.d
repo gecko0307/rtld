@@ -245,46 +245,47 @@ void log(A...)(LogLevel level, A args)
         }
     }
     
-    /*
-    // TODO:
     if (_logOutputOptions.printToFile && _logFilename.length)
     {
+        if (!_logFileInitialized)
+        {
+            auto openResult = File.open(_logFilename.toString, FileAccessMode.Write);
+            if (openResult.success)
+            {
+                _logFile = openResult.value;
+                _logFileInitialized = true;
+            }
+            else
+            {
+                _logOutputOptions.filename = "";
+                _logOutputOptions.printToFile = false;
+                _logFilename.free();
+                
+                // TODO: informative file error messages
+                logError("Failed to open log file (error code: ", openResult.error, ")");
+            }
+        }
+        
         if (_logFileInitialized)
         {
             if (_logOutputOptions.printTimestamp)
             {
                 if (_logOutputOptions.printLogLevel)
-                    _logFile.writeln(timestamp, levelStr, args);
+                    _logFile.printLn(timestamp, levelStr, args);
                 else
-                    _logFile.writeln(timestamp, " ", args);
+                    _logFile.printLn(timestamp, " ", args);
             }
             else
             {
                 if (_logOutputOptions.printLogLevel)
-                    _logFile.writeln(levelStr, args);
+                    _logFile.printLn(levelStr, args);
                 else
-                    _logFile.writeln(args);
+                    _logFile.printLn(args);
             }
             
             _logFile.flush();
         }
-        else
-        {
-            _logFile = File(_logFilename.toString, "w");
-            if ()
-            {
-                _logFileInitialized = true;
-            }
-            else
-            {
-                log("[Logger Error] Failed to open log file: ", e.msg);
-                _logOutputOptions.filename = "";
-                _logOutputOptions.printToFile = false;
-                _logFilename.free();
-            }
-        }
     }
-    */
     
     /*
     // TODO:
@@ -301,7 +302,6 @@ void log(A...)(LogLevel level, A args)
     
     timestamp.free();
 }
-
 
 /**
  * Logs a debug message.
