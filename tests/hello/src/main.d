@@ -1,6 +1,6 @@
 module main;
 
-import rtld;
+import rtld.libc.stdio;
 
 void main()
 {

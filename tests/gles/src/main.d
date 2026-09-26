@@ -1,6 +1,7 @@
 module main;
 
 import rtld;
+import rtld.libc.stdio;
 import transform;
 
 enum VertexAttrib: uint
