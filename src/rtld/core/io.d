@@ -28,61 +28,122 @@ DEALINGS IN THE SOFTWARE.
 module rtld.core.io;
 
 import rtld.core.traits;
+import rtld.core.file;
 import rtld.text.encodings: toUTF8z;
 import rtld.container.array;
 
 version(Windows)
 {
     import rtld.sys.windows;
-    
-    private __gshared HANDLE hStdOut;
 }
 else version(Posix)
 {
     import rtld.sys.posix.unistd;
+    import rtld.sys.posix.fcntl;
 }
 
-void printStr(const(char)[] msg) @nogc nothrow
+/**
+ * A generic output target.
+ * Obtained via `stdout`, `stderr`, or `File.open`.
+ */
+alias OutputStream = File;
+
+private __gshared
 {
-    if (msg.length == 0)
+    OutputStream _stdout;
+    OutputStream _stderr;
+    bool _stdStreamsInitialized = false;
+}
+
+void init() @nogc nothrow
+{
+    if (_stdStreamsInitialized)
         return;
-    
+ 
     version(Windows)
     {
-        if (hStdOut is null)
-            hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hStdOut && hStdOut != INVALID_HANDLE_VALUE)
-        {
-            DWORD written;
-            WriteFile(hStdOut, msg.ptr, cast(DWORD)msg.length, &written, null);
-        }
+        _stdout.handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        _stderr.handle = GetStdHandle(STD_ERROR_HANDLE);
     }
     else version(Posix)
     {
-        write(STDOUT_FILENO, msg.ptr, cast(size_t_posix)msg.length);
+        _stdout.fd = STDOUT_FILENO;
+        _stderr.fd = STDERR_FILENO;
+    }
+ 
+    _stdStreamsInitialized = true;
+}
+
+void finalize() @nogc nothrow
+{
+    if (_stdStreamsInitialized)
+    {
+        _stdout.close();
+        _stderr.close();
     }
 }
 
-void printStrLn(const(char)[] msg) @nogc nothrow
+/// The process's standard output stream.
+@property OutputStream stdout() @nogc nothrow
 {
-    printStr(msg);
-    printStr("\n");
+    return _stdout;
+}
+ 
+/// The process's standard error stream.
+@property OutputStream stderr() @nogc nothrow
+{
+    return _stderr;
 }
 
-void print(T)(T arg, bool quote = false) @nogc nothrow
+void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
+{
+    if (msg.length == 0 || !stream.isValid())
+        return;
+ 
+    version(Windows)
+    {
+        DWORD written;
+        WriteFile(stream.handle, msg.ptr, cast(DWORD)msg.length, &written, null);
+    }
+    else version(Posix)
+    {
+        write(stream.fd, msg.ptr, cast(size_t_posix)msg.length);
+    }
+}
+
+pragma(inline, true)
+void printStr(const(char)[] msg) @nogc nothrow
+{
+    printStr(_stdout, msg);
+}
+
+pragma(inline, true)
+void printStrLn(OutputStream stream, const(char)[] msg) @nogc nothrow
+{
+    printStr(stream, msg);
+    printStr(stream, "\n");
+}
+
+pragma(inline, true)
+void printStrLn(const(char)[] msg) @nogc nothrow
+{
+    printStrLn(_stdout, msg);
+}
+
+void print(T)(OutputStream stream, T arg, bool quote = false) @nogc nothrow
 {
     static if (isString!T)
     {
         if (quote)
-            printStr("\"");
-        printStr(arg);
+            printStr(stream, "\"");
+        printStr(stream, arg);
         if (quote)
-            printStr("\"");
+            printStr(stream, "\"");
     }
     else static if (isWString!T)
     {
         if (quote)
-            printStr("\"");
+            printStr(stream, "\"");
         ubyte[1024] stackBuffer = void;
         const(char)* utf8Resultz = toUTF8z(arg, stackBuffer[]);
         if (utf8Resultz !is null)
@@ -90,24 +151,24 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
             size_t len = 0;
             while (utf8Resultz[len] != '\0')
                 len++;
-            printStr(utf8Resultz[0..len]);
+            printStr(stream, utf8Resultz[0..len]);
         }
         else
-            printStr("?");
+            printStr(stream, "?");
         if (quote)
-            printStr("\"");
+            printStr(stream, "\"");
     }
     else static if (isInteger!T)
     {
         if (arg == 0)
         {
-            printStr("0");
+            printStr(stream, "0");
             return;
         }
         
         if (arg < 0)
         {
-            printStr("-");
+            printStr(stream, "-");
             arg = -arg;
         }
         
@@ -121,34 +182,34 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
             arg /= 10;
         }
         
-        printStr(cast(string)buf[pos..$]);
+        printStr(stream, cast(string)buf[pos..$]);
     }
     else static if (isFloatingPoint!T)
     {
         if (arg != arg)
         {
-            printStr("nan");
+            printStr(stream, "nan");
             return;
         }
         if (arg == T.infinity)
         {
-            printStr("inf");
+            printStr(stream, "inf");
             return;
         }
         if (arg == -T.infinity)
         {
-            printStr("-inf");
+            printStr(stream, "-inf");
             return;
         }
         if (arg < 0)
         {
-            printStr("-");
+            printStr(stream, "-");
             arg = -arg;
         }
 
         long integerPart = cast(long)arg;
-        print(integerPart);
-        printStr(".");
+        print(stream, integerPart);
+        printStr(stream, ".");
 
         double fractionalPart = arg - integerPart;
         int precision = 6;
@@ -173,22 +234,34 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
             pos--;
         }
 
-        printStr(cast(string)buf[0..pos]);
+        printStr(stream, cast(string)buf[0..pos]);
     }
     else static if (is(T == bool))
     {
-        printStr(arg ? "true" : "false");
+        printStr(stream, arg ? "true" : "false");
     }
     else static if (isArray!T)
     {
-        printStr("[");
+        printStr(stream, "[");
         foreach(size_t i, ref element; arg)
         {
             if (i > 0)
-                printStr(", ");
-            print(element, true);
+                printStr(stream, ", ");
+            print(stream, element, true);
         }
-        printStr("]");
+        printStr(stream, "]");
+    }
+    else static if (__traits(hasMember, T, "print"))
+    {
+        static if (isObject!T)
+        {
+            if (arg is null)
+            {
+                printStr(stream, "null");
+                return;
+            }
+        }
+        arg.print(stream);
     }
     else static if (isConvertibleToString!T)
     {
@@ -196,45 +269,29 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
         {
             if (arg is null)
             {
-                printStr("null");
+                printStr(stream, "null");
                 return;
             }
         }
-        printStr(arg.toString());
+        printStr(stream, arg.toString());
     }
-    /*
-    else static if (__traits(hasMember, T, "toString") && 
-                    is(typeof(arg.toString((const(char)[] s) => printStr(s)))))
-    {
-        void delegate(const(char)[]) sink;
-        sink.ptr = null;
-        sink.funcptr = &printStr;
-        arg.toString(sink);
-    }
-    */
     else static if (is(T == struct))
     {
-        printStr(__traits(identifier, T));
-        printStr("(");
+        printStr(stream, __traits(identifier, T));
+        printStr(stream, "(");
         static foreach (i; 0..arg.tupleof.length)
         {
             static if (i > 0)
-                printStr(", ");
-            print(arg.tupleof[i], true);
+                printStr(stream, ", ");
+            print(stream, arg.tupleof[i], true);
         }
-        printStr(")");
+        printStr(stream, ")");
     }
     else static if (isObject!T)
     {
         if (arg is null)
         {
-            printStr("null");
-            return;
-        }
-        
-        if (__traits(hasMember, T, "print"))
-        {
-            arg.print();
+            printStr(stream, "null");
             return;
         }
         
@@ -259,22 +316,22 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
                     lastDot = i + 1;
             }
             
-            printStr(fullName[lastDot..$]);
+            printStr(stream, fullName[lastDot..$]);
         }
         else
         {
-            printStr("{?}");
+            printStr(stream, "{?}");
         }
     }
     else static if (isPointer!T)
     {
         if (arg is null)
         {
-            printStr("null");
+            printStr(stream, "null");
             return;
         }
 
-        printStr("0x");
+        printStr(stream, "0x");
 
         size_t addr = cast(size_t)arg;
         
@@ -289,21 +346,34 @@ void print(T)(T arg, bool quote = false) @nogc nothrow
             addr >>= 4;
         }
 
-        printStr(cast(string)buf);
+        printStr(stream, cast(string)buf);
     }
     else
     {
-        printStr("{?}");
+        printStr(stream, "{?}");
     }
 }
 
-void printLn(T)(T arg) @nogc nothrow
+pragma(inline, true)
+void print(T)(T arg, bool quote = false) @nogc nothrow
 {
-    print(arg);
-    printStr("\n");
+    print(_stdout, arg, quote);
 }
 
-void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
+pragma(inline, true)
+void printLn(T)(OutputStream stream, T arg) @nogc nothrow
+{
+    print(stream, arg);
+    printStr(stream, "\n");
+}
+
+pragma(inline, true)
+void printLn(T)(T arg) @nogc nothrow
+{
+    printLn(_stdout, arg);
+}
+
+void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
     size_t lastIdx = 0;
 
@@ -325,7 +395,7 @@ void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
             if (j < fmt.length && fmt[j] == '}' && hasIndex) 
             {
                 if (i > lastIdx) {
-                    printStr(fmt[lastIdx .. i]);
+                    printStr(stream, fmt[lastIdx .. i]);
                 }
 
                 bool found = false;
@@ -334,14 +404,14 @@ void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
                 {
                     if (!found && argIdx == idx)
                     {
-                        print(args[idx]);
+                        print(stream, args[idx]);
                         found = true;
                     }
                 }
 
                 if (!found)
                 {
-                    printStr("{?}");
+                    printStr(stream, "{?}");
                 }
                 
                 i = j; 
@@ -350,13 +420,25 @@ void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
         }
     }
     
-    if (lastIdx < fmt.length) {
-        printStr(fmt[lastIdx..$]);
-    }
+    if (lastIdx < fmt.length)
+        printStr(stream, fmt[lastIdx..$]);
 }
 
+pragma(inline, true)
+void printFmt(Args...)(const(char)[] fmt, Args args) @nogc nothrow
+{
+    printFmt(_stdout, fmt, args);
+}
+
+pragma(inline, true)
+void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
+{
+    printFmt(stream, fmt, args);
+    printStr(stream, "\n");
+}
+
+pragma(inline, true)
 void printFmtLn(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 {
-    printFmt(fmt, args);
-    printStr("\n");
+    printFmtLn(_stdout, fmt, args);
 }

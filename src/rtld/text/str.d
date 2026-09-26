@@ -35,6 +35,7 @@ DEALINGS IN THE SOFTWARE.
  */
 module rtld.text.str;
 
+import rtld.core.io;
 import rtld.core.traits;
 import rtld.core.memory;
 import rtld.core.file;
@@ -274,7 +275,7 @@ struct String
 
     ///
     pragma(inline, true)
-    @property string toString() const
+    @property string toString() const @nogc nothrow
     {
         if (data.length == 0)
             return "";
@@ -284,6 +285,12 @@ struct String
 
     ///
     alias toString this;
+    
+    ///
+    void print(OutputStream stream) @nogc nothrow
+    {
+        .printStr(stream, toString);
+    }
 
     ///
     pragma(inline, true)

@@ -59,7 +59,8 @@ void rtldInit() nothrow @nogc
             SetConsoleCP(CP_UTF8);
             SetConsoleOutputCP(CP_UTF8);
         }
-       
+        
+        rtld.core.io.init();
         rtld.core.tls.init();
         rtld.core.errno.init();
         rtld.random.random.init();
@@ -72,10 +73,26 @@ void rtldInit() nothrow @nogc
     }
 }
 
+void rtldFinalize()
+{
+    version(FreeStanding)
+    {
+    }
+    else
+    {
+        rtld.core.io.finalize();
+    }
+}
+
 version(Phobos)
 {
     static this()
     {
         rtldInit();
+    }
+    
+    static ~this()
+    {
+        rtldFinalize();
     }
 }

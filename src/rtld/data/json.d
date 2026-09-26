@@ -200,50 +200,50 @@ class JSONValue: Owner
     alias addField = addObjectProperty;
     
     ///
-    void print() @nogc nothrow
+    void print(OutputStream stream) @nogc nothrow
     {
         switch(type)
         {
             case JSONType.Null:
-                printStr("null");
+                .printStr(stream, "null");
                 break;
             case JSONType.Number:
-                .print(asNumber);
+                .print(stream, asNumber);
                 break;
             case JSONType.Boolean:
                 if (asBoolean)
-                    .print("true");
+                    .print(stream, "true");
                 else
-                    .print("false");
+                    .print(stream, "false");
                 break;
             case JSONType.String:
-                printStr(asString);
+                .printStr(stream, asString);
                 break;
             case JSONType.Array:
-                printStr("[");
+                .printStr(stream, "[");
                 foreach(size_t i, ref element; asArray.data)
                 {
                     if (i > 0)
-                        printStr(", ");
-                    element.print();
+                        printStr(stream, ", ");
+                    element.print(stream);
                 }
-                printStr("]");
+                .printStr(stream, "]");
                 break;
             case JSONType.Object:
-                printStr("{");
+                .printStr(stream, "{");
                 foreach(size_t i, ref entry; asObject.entries.data)
                 {
                     if (i > 0)
-                        printStr(", ");
-                    printStr("\"");
-                    printStr(entry.key);
-                    printStr("\":");
-                    entry.value.print();
+                        .printStr(stream, ", ");
+                    .printStr(stream, "\"");
+                    .printStr(stream, entry.key);
+                    .printStr(stream, "\":");
+                    entry.value.print(stream);
                 }
-                printStr("}");
+                .printStr(stream, "}");
                 break;
             default:
-                printStr("?");
+                .printStr(stream, "?");
                 break;
         }
     }

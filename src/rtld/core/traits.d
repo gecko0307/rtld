@@ -153,5 +153,5 @@ template isFinalizable(T)
 template isConvertibleToString(T)
 {
     enum isConvertibleToString =
-        __traits(hasMember, T, "toString") && is(typeof(arg.toString()): const(char)[]);
+        __traits(hasMember, T, "toString") && is(typeof(T.init.toString()): const(char)[]);
 }

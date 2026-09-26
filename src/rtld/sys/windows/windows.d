@@ -79,6 +79,7 @@ enum FALSE = 0;
 enum BLACK_BRUSH = 4;
 
 enum STD_OUTPUT_HANDLE = cast(DWORD)-11;
+enum STD_ERROR_HANDLE = cast(DWORD)-12;
 enum HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1;
 
 alias PROC = extern(Windows) void function();

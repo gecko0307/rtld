@@ -55,6 +55,7 @@ extern(C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     int returnCode = mainFunc(args);
     memoryProfilerEnabled = false;
     Delete(args);
+    rtldFinalize();
     return returnCode;
 }
 

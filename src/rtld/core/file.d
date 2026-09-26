@@ -105,6 +105,11 @@ struct File
 {
     PlatformHandle handle = InvalidHandle;
     
+    bool isValid() const @nogc nothrow
+    {
+        return handle != InvalidHandle;
+    }
+    
     static FileOpenResult open(string path, FileAccessMode accessMode = FileAccessMode.Read) @nogc nothrow
     {
         if (path.length == 0)
