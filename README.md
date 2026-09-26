@@ -21,6 +21,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 - `rtld.gl` - OpenGL ES 2/3
 - `rtld.hash` - fast non-cryptographic hash functions: xxHash64, xxHash32
 - `rtld.libc` - libc binding (WIP)
+- `rtld.logger` - a simple logger that prints messages to stdout and/or to a file
 - `rtld.math` - elementary math functions. Provides bare metal fallbacks with performance and accuracy comparable to `std.math`
 - `rtld.memory` - allocator interface and its implementations; arena allocator
 - `rtld.random` - platform-independent non-cryptographic RNG based on [Permuted Congruential Generator](http://www.pcg-random.org/index.html)
