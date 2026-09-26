@@ -5,7 +5,10 @@ RTLD 0.7.0 - TBD
 * **rtld.logger**
   * Built-in logger (`rtld.logger.logger`)
 * **rtld.data**
-  * `Varint.print`.
+  * `Varint.print`
+* **rtld.time**
+  * `Stopwatch`
+  * Time unit conversion functions.
 
 RTLD 0.6.1 - 26 Sep, 2026
 -------------------------

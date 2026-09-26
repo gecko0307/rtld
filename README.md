@@ -29,7 +29,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 - `rtld.sys.posix` - POSIX binding (WIP)
 - `rtld.sys.linux` - Linux kernel API and subsystems binding (WIP)
 - `rtld.text` - text encodings (UTF-8, UTF-16), GC-free `String` type, string formatting, lexer
-- `rtld.time` - cross-platform date-time functions.
+- `rtld.time` - cross-platform date-time query, nanosecond-precision timer, stopwatch.
 
 ## Usage
 
