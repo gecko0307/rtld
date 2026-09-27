@@ -1,6 +1,6 @@
 # RTLD
 
-RTLD aims to be a minimal runtime library for D, alternative to Phobos/druntime. It is not meant for generic application development, but rather for special use cases:
+RTLD aims to be an alternative runtime library for D, a partial replacement for Phobos/druntime. It is not meant for generic application development, but rather for special use cases:
 
 - Projects that need "Better BetterC". Raw BetterC mode is too restrictive. RTLD is fully independent from druntime, but supports classes, allowing to write at C++ level of abstraction
 - Performance-critical applications that can't rely on GC
