@@ -136,8 +136,49 @@ enum JSONType
     Boolean
 }
 
-/// Generic JSON value
-class JSONValue: Owner
+struct JSONObjectProperty
+{
+    ulong hash;
+    string key;
+    JSONValue value;
+}
+
+alias JSONArray = JSONValue[];
+
+struct JSONObject
+{
+    JSONObjectProperty[] data;
+    
+    /// Returns a pointer to the entry's value, or null if it doesn't exist.
+    JSONValue* get(string key) nothrow @nogc
+    {
+        ulong hash = xxHash64(key, XXHASH64_SEED);
+        foreach(ref prop; data)
+        {
+            if (prop.hash == hash)
+                return &prop.value;
+        }
+        return null;
+    }
+    
+    /// Bracket syntax.
+    JSONValue opIndex(string key) nothrow @nogc
+    {
+        JSONValue* value = get(key);
+        if (value is null)
+            return JSONValue.init;
+        else
+            return *value;
+    }
+    
+    /// "in" operator.
+    JSONValue* opBinaryRight(string op)(string key) nothrow @nogc if (op == "in")
+    {
+        return get(xxHash64(key, XXHASH64_SEED));
+    }
+}
+
+struct JSONValue
 {
     union
     {
@@ -147,57 +188,10 @@ class JSONValue: Owner
         JSONArray asArray;
         JSONObject asObject;
         void* asPointer;
-        protected ubyte[JSONArray.sizeof] asRawBytes;
     }
     
     ///
     JSONType type;
-    
-    ///
-    this(Owner owner = null)
-    {
-        super(owner);
-        type = JSONType.Null;
-        asRawBytes[] = 0;
-    }
-    
-    ///
-    ~this()
-    {
-        if (type == JSONType.Array)
-            asArray.free();
-        else if (type == JSONType.Object)
-            asObject.free();
-    }
-    
-    ///
-    void makeArray()
-    {
-        type = JSONType.Array;
-    }
-    
-    ///
-    void makeObject()
-    {
-        type = JSONType.Object;
-    }
-    
-    ///
-    void addArrayElement(JSONValue element)
-    {
-        type = JSONType.Array;
-        asArray.append(element);
-    }
-    
-    ///
-    void addObjectProperty(string key, JSONValue element)
-    {
-        type = JSONType.Object;
-        asObject[key] = element;
-    }
-    
-    /// For dlib 1.x compatibility.
-    alias addField = addObjectProperty;
     
     ///
     void print(OutputStream stream) @nogc nothrow
@@ -221,7 +215,7 @@ class JSONValue: Owner
                 break;
             case JSONType.Array:
                 .printStr(stream, "[");
-                foreach(size_t i, ref element; asArray.data)
+                foreach(size_t i, ref element; asArray)
                 {
                     if (i > 0)
                         printStr(stream, ", ");
@@ -231,14 +225,14 @@ class JSONValue: Owner
                 break;
             case JSONType.Object:
                 .printStr(stream, "{");
-                foreach(size_t i, ref entry; asObject.entries.data)
+                foreach(size_t i, ref prop; asObject.data)
                 {
                     if (i > 0)
                         .printStr(stream, ", ");
                     .printStr(stream, "\"");
-                    .printStr(stream, entry.key);
+                    .printStr(stream, prop.key);
                     .printStr(stream, "\":");
-                    entry.value.print(stream);
+                    prop.value.print(stream);
                 }
                 .printStr(stream, "}");
                 break;
@@ -249,12 +243,6 @@ class JSONValue: Owner
     }
 }
 
-/// JSON array
-alias JSONArray = Array!JSONValue;
-
-/// JSON Object
-alias JSONObject = LinearHashMap!JSONValue;
-
 /// JSON parsing result
 alias JSONResult = Compound!(bool, String);
 
@@ -264,7 +252,50 @@ enum JSONError
     EOI = JSONResult(false, String("unexpected end of input"))
 }
 
-/// JSON document
+enum JSON_OK = JSONResult(true, String(""));
+
+import rtld.memory.arena;
+
+struct ArenaArray(T)
+{
+    Arena arena;
+
+    T[] buffer;
+    size_t length;
+    size_t capacity;
+
+    void append(T value)
+    {
+        if (length == capacity)
+            grow();
+        buffer[length++] = value;
+    }
+
+    void grow()
+    {
+        size_t newCapacity = capacity
+            ? capacity * 2
+            : 8;
+
+        T[] newBuffer = cast(T[])arena.allocate(T.sizeof * newCapacity, T.alignof);
+
+        if (length)
+            newBuffer[0..length] = buffer[0..length];
+
+        buffer = newBuffer;
+        capacity = newCapacity;
+    }
+
+    T[] finish()
+    {
+        T[] result = buffer[0..length];
+        length = 0;
+        capacity = 0;
+        buffer = [];
+        return result;
+    }
+}
+
 class JSONDocument: Owner
 {
    public:
@@ -274,25 +305,25 @@ class JSONDocument: Owner
     this(string input, Owner owner = null)
     {
         super(owner);
-        root = New!JSONValue(this);
         lexer = New!JSONLexer(input);
-        JSONResult res = parseValue(root);
+        parserArena = New!Arena(16 * 1024, this);
+        JSONResult res = parse();
         isValid = res[0];
         auto msg = res[1];
         if (!isValid && msg.length)
-            printStr(msg.toString);
+            printLn(msg.toString);
         msg.free();
     }
     
     ~this()
     {
-        Delete(root);
         Delete(lexer);
     }
     
    protected:
 
     JSONLexer lexer;
+    Arena parserArena;
     
     string currentLexeme() @property
     {
@@ -304,103 +335,123 @@ class JSONDocument: Owner
         lexer.nextLexeme();
     }
     
-    JSONResult parseValue(JSONValue value)
+    JSONResult parse()
+    {
+        JSONResult res = parseValue(&root);
+        return res;
+    }
+    
+    JSONResult parseValue(JSONValue* value)
     {
         if (!currentLexeme.length)
             return JSONError.EOI;
-
         if (currentLexeme == "{")
-        {
-            value.makeObject();
-            nextLexeme();
-            while (currentLexeme.length && currentLexeme != "}")
-            {
-                string identifier = currentLexeme;
-                if (!identifier.length)
-                    return JSONError.EOI;
-                if (identifier[0] != '\"' || identifier[$-1] != '\"')
-                    return JSONResult(false, format("illegal identifier \"{0}\"", identifier));
-                identifier = identifier[1..$-1];
-
-                nextLexeme();
-                if (currentLexeme != ":")
-                    return JSONResult(false, format("\":\" expected, got \"{0}\"", currentLexeme));
-
-                nextLexeme();
-                JSONValue newValue = New!JSONValue(this);
-                JSONResult res = parseValue(newValue);
-                if (!res[0])
-                    return res;
-
-                value.addObjectProperty(identifier, newValue);
-
-                nextLexeme();
-
-                if (currentLexeme == ",")
-                    nextLexeme();
-                else if (currentLexeme != "}")
-                    return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
-            }
-        }
+            return parseObject(value);
         else if (currentLexeme == "[")
+            return parseArray(value);
+        else
+            return parseTerminal(value, currentLexeme);
+    }
+    
+    JSONResult parseObject(JSONValue* value)
+    {
+        value.type = JSONType.Object;
+        nextLexeme();
+        auto tmpArray = ArenaArray!(JSONObjectProperty)(parserArena);
+        while (currentLexeme.length && currentLexeme != "}")
         {
-            value.makeArray();
+            string propKey = currentLexeme;
+            if (!propKey.length)
+                return JSONError.EOI;
+            if (propKey[0] != '\"' || propKey[$-1] != '\"')
+                return JSONResult(false, format("illegal key \"{0}\"", propKey));
+            propKey = propKey[1..$-1];
+
             nextLexeme();
-            while (currentLexeme.length && currentLexeme != "]")
-            {
-                JSONValue newValue = New!JSONValue(this);
-                JSONResult res = parseValue(newValue);
-                if (!res[0])
-                    return res;
+            if (currentLexeme != ":")
+                return JSONResult(false, format("\":\" expected, got \"{0}\"", currentLexeme));
 
-                value.addArrayElement(newValue);
+            nextLexeme();
+            
+            JSONValue propValue;
+            JSONResult res = parseValue(&propValue);
+            if (!res[0])
+                return res;
 
+            ulong propKeyHash = xxHash64(propKey, XXHASH64_SEED);
+            tmpArray.append(JSONObjectProperty(propKeyHash, propKey, propValue));
+
+            nextLexeme();
+
+            if (currentLexeme == ",")
                 nextLexeme();
+            else if (currentLexeme != "}")
+                return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
+        }
+        value.asObject = JSONObject(tmpArray.finish());
+        return JSON_OK;
+    }
+    
+    JSONResult parseArray(JSONValue* value)
+    {
+        value.type = JSONType.Array;
+        nextLexeme();
+        auto tmpArray = ArenaArray!(JSONValue)(parserArena);
+        while (currentLexeme.length && currentLexeme != "]")
+        {
+            JSONValue elemValue;
+            JSONResult res = parseValue(&elemValue);
+            if (!res[0])
+                return res;
 
-                if (currentLexeme == ",")
-                    nextLexeme();
-                else if (currentLexeme != "]")
-                    return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
-            }
+            tmpArray.append(elemValue);
+            nextLexeme();
+
+            if (currentLexeme == ",")
+                nextLexeme();
+            else if (currentLexeme != "]")
+                return JSONResult(false, format("\"}\" expected, got \"{0}\"", currentLexeme));
+        }
+        value.asArray = tmpArray.finish();
+        return JSON_OK;
+    }
+    
+    JSONResult parseTerminal(JSONValue* value, string data)
+    {
+        if (data[0] == '\"')
+        {
+            if (data[$-1] != '\"')
+                return JSONResult(false, format("illegal string \"{0}\"", data));
+            data = data[1..$-1];
+            value.type = JSONType.String;
+            value.asString = data;
+        }
+        else if (data == "true")
+        {
+            value.type = JSONType.Boolean;
+            value.asBoolean = true;
+        }
+        else if (data == "false")
+        {
+            value.type = JSONType.Boolean;
+            value.asBoolean = false;
+        }
+        else if (data == "null")
+        {
+            value.type = JSONType.Null;
+            value.asPointer = null;
         }
         else
         {
-            string data = currentLexeme;
-            if (data[0] == '\"')
+            value.type = JSONType.Number;
+            if (!parseDouble(data, value.asNumber))
             {
-                if (data[$-1] != '\"')
-                    return JSONResult(false, format("illegal string \"{0}\"", data));
-                data = data[1..$-1];
-                value.type = JSONType.String;
-                value.asString = data;
-            }
-            else if (data == "true")
-            {
-                value.type = JSONType.Boolean;
-                value.asBoolean = true;
-            }
-            else if (data == "false")
-            {
-                value.type = JSONType.Boolean;
-                value.asBoolean = false;
-            }
-            else if (data == "null")
-            {
-                value.type = JSONType.Null;
-                value.asPointer = null;
-            }
-            else
-            {
-                value.type = JSONType.Number;
-                if (!parseDouble(data, value.asNumber))
-                {
-                    value.asNumber = double.nan;
-                    return JSONResult(false, format("illegal value \"{0}\"", data));
-                }
+                value.asNumber = double.nan;
+                return JSONResult(false, format("illegal value \"{0}\"", data));
             }
         }
-
-        return JSONResult(true, String(""));
+        
+        return JSON_OK;
     }
 }
 

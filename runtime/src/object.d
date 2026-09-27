@@ -307,6 +307,48 @@ class TypeInfo_Class: TypeInfo
     // TODO
 }
 
+extern(C) Object _d_toObject(return scope void* p) @nogc nothrow
+{
+    if (!p)
+        return null;
+
+    Object o = cast(Object) p;
+    Interface* pi = **cast(Interface***)p;
+
+    if (pi.offset < 0x10000)
+        return cast(Object)(p - pi.offset);
+
+    return o;
+}
+
+alias _DtorFn = void function(Object);
+
+void destroy(T)(T obj) if (is(T == class))
+{
+    if (obj is null)
+        return;
+
+    for (auto c = typeid(obj); c; c = c.base)
+    {
+        if (c.destructor)
+            (cast(_DtorFn)c.destructor)(obj);
+    }
+}
+
+void destroy(T)(T iface) if (is(T == interface))
+{
+    if (o is null)
+        return;
+
+    Object obj = _d_toObject(cast(void*)iface);
+
+    for (auto c = typeid(obj); c; c = c.base)
+    {
+        if (c.destructor)
+            (cast(_DtorFn)c.destructor)(obj);
+    }
+}
+
 class TypeInfo_Interface : TypeInfo
 {
     TypeInfo_Class info;

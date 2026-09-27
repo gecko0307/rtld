@@ -286,6 +286,7 @@ else
         size_t allocSize = objectSize;
         if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
+        
         void* memory = defaultAllocator.allocate(allocSize).ptr;
         if (memory is null)
             outOfMemoryError(file, line);
@@ -320,18 +321,24 @@ else
         if (obj is null)
             return;
         
-        void* memory = cast(void*)obj;
-        enum objectSize = __traits(classInstanceSize, T);
+        Object o;
+        static if (is(T == interface))
+            o = _d_toObject(cast(void*)obj);
+        else
+            o = obj;
+
+        void* memory = cast(void*)o;
+        size_t objectSize = typeid(o).initializer.length;
         size_t allocSize = objectSize;
         if (_memoryProfilerEnabled)
             allocSize += MPRecordSize;
         
-        static if (__traits(hasMember, T, "__dtor"))
-            obj.__dtor();
+        destroy(o);
         
         if (_memoryProfilerEnabled)
         {
             MPRecord* rec = cast(MPRecord*)(memory - MPRecordSize);
+            
             if (rec.magic == MP_RECORD_MAGIC)
             {
                 lockProfiler();
@@ -349,6 +356,7 @@ else
         }
         
         defaultAllocator.deallocate(memory[0..allocSize]);
+        
         obj = null;
     }
     

@@ -72,13 +72,13 @@ class Owner: Owned
     }
 
     /// Add owned object. Usually you don't have to do it explicitly, just pass the owner to constructor
-    final void addOwnedObject(Owned obj)
+    void addOwnedObject(Owned obj)
     {
         ownedObjects.append(obj);
     }
 
     /// Delete owned object without deleting object itself
-    final void clearOwnedObjects()
+    void clearOwnedObjects()
     {
         foreach(i, obj; ownedObjects)
             Delete(obj);
@@ -86,7 +86,7 @@ class Owner: Owned
     }
 
     /// Delete particular owned object, if it is there
-    final void deleteOwnedObject(Owned obj)
+    void deleteOwnedObject(Owned obj)
     {
         if (ownedObjects.removeFirst(obj))
         {
