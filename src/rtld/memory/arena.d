@@ -75,6 +75,7 @@ class Arena: Owner
 {
     protected:
     
+    size_t bufferSize = 1024;
     Array!ArenaBuffer buffers;
     size_t currentBufferIndex;
     ArenaBuffer* lastBuffer;
@@ -101,6 +102,7 @@ class Arena: Owner
     this(size_t bufferSize, Owner owner = null)
     {
         super(owner);
+        this.bufferSize = bufferSize;
         addBuffer(bufferSize);
         currentBufferIndex = 0;
         lastAllocationSize = 0;
@@ -110,6 +112,14 @@ class Arena: Owner
     ~this()
     {
         release();
+    }
+    
+    size_t totalSize()
+    {
+        size_t s;
+        foreach(buf; buffers)
+            s += buf.offset;
+        return s;
     }
     
     /// Resets arena for reuse.
@@ -213,7 +223,7 @@ class Arena: Owner
         }
         
         // No suitable buffer found, allocate a new one
-        currentBuffer = addBuffer(size);
+        currentBuffer = addBuffer(bufferSize);
         currentBufferIndex = buffers.length - 1;
         ubyte[] res = currentBuffer.data[0..size];
         currentBuffer.offset = size;
@@ -677,19 +687,4 @@ T[] dup(T)(Arena arena, const(T)[] arr)
 immutable(T)[] idup(T)(Arena arena, const(T)[] arr)
 {
     return cast(immutable(T)[])dup(arena, arr);
-}
-
-/**
- * Aligns the specified offset with the given alignment.
- *
- * Params:
- *   offset - The original offset.
- *   alignment - The desired alignment (power of two).
- *
- * Returns:
- *   The new offset, aligned with alignment.
- */
-size_t alignup(size_t offset, size_t alignment) nothrow @nogc pure @safe
-{
-    return (offset + alignment - 1) & ~(alignment - 1);
 }

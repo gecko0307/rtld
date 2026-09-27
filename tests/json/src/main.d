@@ -12,9 +12,9 @@ int main()
     sw.start();
     JSONDocument doc = New!JSONDocument(jsonStr);
     auto t = sw.elapsed();
-    printFmtLn("{0} ms", t.milliseconds);
     
     printLn(doc.root);
+    size_t docSize = doc.allocationSize;
     
     Delete(doc);
     jsonStr.free();
@@ -22,7 +22,9 @@ int main()
     if (allocatedMemory > 0)
         printMemoryLeaks();
     
-    printStr("Success!");
+    printLn("Success!");
+    printFmtLn("Parsed in {0} ms", t.milliseconds);
+    printFmtLn("Document used {0} byte(s)", docSize);
     
     return 0;
 }

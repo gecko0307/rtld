@@ -174,7 +174,7 @@ struct JSONObject
     /// "in" operator.
     JSONValue* opBinaryRight(string op)(string key) nothrow @nogc if (op == "in")
     {
-        return get(xxHash64(key, XXHASH64_SEED));
+        return get(key);
     }
 }
 
@@ -254,11 +254,62 @@ enum JSONError
 
 enum JSON_OK = JSONResult(true, String(""));
 
-import rtld.memory.arena;
+struct JSONArena
+{
+    struct Block
+    {
+        ubyte[] data;
+        size_t offset;
+    }
+
+    Array!Block blocks;
+    size_t bufferSize;
+
+    this(size_t bufferSize)
+    {
+        this.bufferSize = bufferSize;
+        addBlock(bufferSize);
+    }
+
+    void addBlock(size_t size)
+    {
+        blocks.append(Block(New!(ubyte[])(size), 0));
+    }
+
+    ubyte[] allocate(size_t size, size_t alignment)
+    {
+        auto last = &blocks.data[blocks.length - 1];
+        size_t alignedOffset = alignup(last.offset, alignment);
+        if (alignedOffset + size > last.data.length)
+        {
+            addBlock(size > bufferSize ? size : bufferSize);
+            last = &blocks.data[blocks.length - 1];
+            alignedOffset = 0;
+        }
+        ubyte[] res = last.data[alignedOffset..alignedOffset+size];
+        last.offset = alignedOffset + size;
+        return res;
+    }
+
+    size_t totalSize()
+    {
+        size_t s;
+        foreach(ref b; blocks)
+            s += b.data.length;
+        return s;
+    }
+
+    void free()
+    {
+        foreach (ref b; blocks)
+            Delete(b.data);
+        blocks.free();
+    }
+}
 
 struct ArenaArray(T)
 {
-    Arena arena;
+    JSONArena* arena;
 
     T[] buffer;
     size_t length;
@@ -306,7 +357,7 @@ class JSONDocument: Owner
     {
         super(owner);
         lexer = New!JSONLexer(input);
-        parserArena = New!Arena(16 * 1024, this);
+        parserArena = JSONArena(16 * 1024);
         JSONResult res = parse();
         isValid = res[0];
         auto msg = res[1];
@@ -318,12 +369,18 @@ class JSONDocument: Owner
     ~this()
     {
         Delete(lexer);
+        parserArena.free();
+    }
+    
+    size_t allocationSize()
+    {
+        return parserArena.totalSize();
     }
     
    protected:
 
     JSONLexer lexer;
-    Arena parserArena;
+    JSONArena parserArena;
     
     string currentLexeme() @property
     {
@@ -357,7 +414,7 @@ class JSONDocument: Owner
     {
         value.type = JSONType.Object;
         nextLexeme();
-        auto tmpArray = ArenaArray!(JSONObjectProperty)(parserArena);
+        auto tmpArray = ArenaArray!(JSONObjectProperty)(&parserArena);
         while (currentLexeme.length && currentLexeme != "}")
         {
             string propKey = currentLexeme;
@@ -396,7 +453,7 @@ class JSONDocument: Owner
     {
         value.type = JSONType.Array;
         nextLexeme();
-        auto tmpArray = ArenaArray!(JSONValue)(parserArena);
+        auto tmpArray = ArenaArray!(JSONValue)(&parserArena);
         while (currentLexeme.length && currentLexeme != "]")
         {
             JSONValue elemValue;

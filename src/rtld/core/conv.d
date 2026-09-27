@@ -33,13 +33,17 @@ import rtld.core.errno;
 ///
 bool parseInt(string s, ref int v)
 {
-    if (s.length == 0)
+    if (s.length == 0 || s.length >= 64)
         return false;
+
+    char[64] buf;
+    buf[0..s.length] = s[];
+    buf[s.length] = 0;
     
     char* end;
-    long value = strtoll(s.ptr, &end, 10);
+    long value = strtoll(buf.ptr, &end, 10);
     
-    if (end != s.ptr + s.length)
+    if (end != buf.ptr + s.length)
         return false;
     
     if (value < int.min || value > int.max)
@@ -72,14 +76,18 @@ unittest
 ///
 bool parseLong(string s, ref long v)
 {
-    if (s.length == 0)
+    if (s.length == 0 || s.length >= 64)
         return false;
+
+    char[64] buf;
+    buf[0..s.length] = s[];
+    buf[s.length] = 0;
 
     char* end;
     *errno = 0;
-    v = strtoll(s.ptr, &end, 10);
+    v = strtoll(buf.ptr, &end, 10);
 
-    if (end != s.ptr + s.length)
+    if (end != buf.ptr + s.length)
         return false;
 
     if (*errno == ERANGE)
@@ -117,11 +125,16 @@ unittest
 ///
 bool parseFloat(string s, ref float v)
 {
-    if (s.length == 0)
+    if (s.length == 0 || s.length >= 64)
         return false;
+    
+    char[64] buf;
+    buf[0..s.length] = s[];
+    buf[s.length] = 0;
+    
     char* end;
-    v = strtof(s.ptr, &end);
-    return end == s.ptr + s.length;
+    v = strtof(buf.ptr, &end);
+    return end == buf.ptr + s.length;
 }
 
 unittest
@@ -142,11 +155,16 @@ unittest
 ///
 bool parseDouble(string s, ref double v)
 {
-    if (s.length == 0)
+    if (s.length == 0 || s.length >= 64)
         return false;
+    
+    char[64] buf;
+    buf[0..s.length] = s[];
+    buf[s.length] = 0;
+    
     char* end;
-    v = strtod(s.ptr, &end);
-    return end == s.ptr + s.length;
+    v = strtod(buf.ptr, &end);
+    return end == buf.ptr + s.length;
 }
 
 unittest

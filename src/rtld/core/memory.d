@@ -435,3 +435,18 @@ else
     alias New = allocate;
     alias Delete = deallocate;
 }
+
+/**
+ * Aligns the specified offset with the given alignment.
+ *
+ * Params:
+ *   offset - The original offset.
+ *   alignment - The desired alignment (power of two).
+ *
+ * Returns:
+ *   The new offset, aligned with alignment.
+ */
+size_t alignup(size_t offset, size_t alignment) nothrow @nogc pure @safe
+{
+    return (offset + alignment - 1) & ~(alignment - 1);
+}
