@@ -5,7 +5,7 @@ import rtld;
 int main()
 {
     memoryProfilerEnabled = true;
-    
+
     String jsonStr = String.fromFile("64KB.json");
     
     Stopwatch sw;
@@ -28,3 +28,4 @@ int main()
     
     return 0;
 }
+

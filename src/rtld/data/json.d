@@ -46,82 +46,126 @@ import rtld.container.hashmap;
 import rtld.hash.xxhash64;
 import rtld.text.utils;
 import rtld.text.utf8;
-import rtld.text.lexer;
 import rtld.text.str;
 import rtld.text.format;
 
-///
 class JSONLexer
 {
     ///
     string text;
-    
+
     ///
-    Lexer lexer;
-    
+    size_t position;
+
     ///
     string currentLexeme;
-    
-    ///
-    string[11] delimiters = [
-        "{", "}", "[", "]", ",", ":", "\n", " ", "\"", "\'", "`"
-    ];
-    
+
     ///
     this(string text)
     {
         this.text = text;
-        lexer.ignoreNewlines = true;
-        lexer.start(this.text, delimiters);
         nextLexeme();
     }
-    
+
     ///
     void nextLexeme()
     {
-        // Skip whitespaces
-        string lex;
-        do
+        size_t length = text.length;
+
+        // Skip whitespace
+        while (position < length)
         {
-            lex = lexer.getLexeme();
-            if (lex.length == 0) break;
+            char c = text[position];
+
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+                position++;
+            else
+                break;
         }
-        while(lex == " " || lex == "\t" || lex == "\n");
-        
+
         // EOF
-        if (lex.length == 0)
+        if (position >= length)
         {
             currentLexeme = "";
             return;
         }
-        
-        if (lex == "\"" || lex == "\'" || lex == "`")
+
+        size_t start = position;
+        char c = text[position];
+
+        // Single-character tokens
+        if (c == '{' ||
+            c == '}' ||
+            c == '[' ||
+            c == ']' ||
+            c == ',' ||
+            c == ':')
         {
-            string quote = lex;
-            size_t startPos = lexer.position() - 1;
-            
-            while(true)
+            position++;
+            currentLexeme = text[start..position];
+            return;
+        }
+
+        // Quoted string
+        if (c == '"' || c == '\'' || c == '`')
+        {
+            char quote = c;
+            position++;
+
+            while (position < length)
             {
-                auto nextLex = lexer.getLexeme();
-                if (nextLex.length == 0)
+                c = text[position];
+
+                if (c == '\\')
                 {
-                    // EOF without closing quote
-                    currentLexeme = text[startPos..$];
+                    // Skip escaped character.
+                    // This also handles escaped quotes.
+                    position++;
+
+                    if (position < length)
+                        position++;
+
+                    continue;
+                }
+
+                if (c == quote)
+                {
+                    position++;
+                    currentLexeme = text[start..position];
                     return;
                 }
-                else if (nextLex.length == 1 && nextLex == quote)
-                {
-                    // Closing quote found
-                    size_t endPos = lexer.position();
-                    currentLexeme = text[startPos..endPos];
-                    return;
-                }
+
+                position++;
             }
+
+            // EOF without closing quote
+            currentLexeme = text[start..$];
+            return;
         }
-        else
+
+        // Everything else: read until whitespace or JSON delimiter.
+        while (position < length)
         {
-            currentLexeme = lex;
+            c = text[position];
+
+            if (c == ' '  ||
+                c == '\t' ||
+                c == '\n' ||
+                c == '\r' ||
+                c == '{'  ||
+                c == '}'  ||
+                c == '['  ||
+                c == ']'  ||
+                c == ','  ||
+                c == ':')
+            {
+                break;
+            }
+
+            position++;
         }
+
+        currentLexeme = text[start..position];
     }
 }
 
