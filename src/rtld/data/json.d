@@ -566,7 +566,7 @@ unittest
         \"bool\": true,
         \"arr\": [0, 1, 2],
         \"emptyObj\": {},
-        \"emptyArr\": [],
+        \"emptyArr\": []
     }
     ";
     

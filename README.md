@@ -134,3 +134,19 @@ class MyClass
 MyClass c = New!MyClass(10);
 Delete(c);
 ```
+
+JSON parsing:
+
+```json
+{
+    "foo": "bar"
+}
+```
+
+```d
+String jsonStr = String.fromFile("test.json");
+JSONDocument doc = New!JSONDocument(jsonStr);
+assert(doc.root.asObject["foo"].asString == "bar");
+Delete(doc);
+jsonStr.free();
+```
