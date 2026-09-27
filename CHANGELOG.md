@@ -1,5 +1,10 @@
-RTLD 0.7.0 - TBD
+RTLD 0.8.0 - TBD
 ----------------
+* **Building**
+  * druntime replacement workflow changed, see README.md.
+
+RTLD 0.7.0 - 27 Sep, 2026
+-------------------------
 * **rtld.core**
   * Basic formatting specs support for printing integers in hex or binary and floats with arbitrary precision: `{0:x}`, `{0:X}`, `{0:b}`, `{0:f2}`
 * **rtld.memory**
