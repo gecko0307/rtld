@@ -9,6 +9,9 @@
     "dependencies": {
         "rtld": { "path": "../.." }
     },
+    "subConfigurations": {
+        "rtld": "replace-druntime"
+    },
     
     "importPaths": [
         "src"
@@ -20,6 +23,11 @@
     
     "buildRequirements": [
         "allowWarnings"
+    ],
+    
+    "dflags": [
+        "-defaultlib=",
+        "-debuglib="
     ],
     
     "lflags-linux": ["-rpath=$$ORIGIN"]

@@ -7,11 +7,10 @@
         "Timur Gafarov"
     ],
     "dependencies": {
-        "rtld": { "path": "../.." },
-        "rtld:runtime": { "path": "../.." }
+        "rtld": { "path": "../.." }
     },
     "subConfigurations": {
-        "rtld": "no-druntime"
+        "rtld": "replace-druntime"
     },
     
     "importPaths": [

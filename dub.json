@@ -23,17 +23,31 @@
     "configurations": [
         {
             "name": "default",
-            "targetType": "sourceLibrary",
+            "targetType": "library",
             "versions": ["Phobos"]
         },
         {
-            "name": "no-druntime",
-            "targetType": "sourceLibrary"
-        },
-    ],
-    
-    "subPackages": [
-        "runtime"
+            "name": "replace-druntime",
+            "targetType": "staticLibrary",
+            "importPaths": [
+                "src",
+                "runtime/src"
+            ],
+            "sourcePaths": [
+                "src",
+                "runtime/src"
+            ],
+            "dflags": [
+                "-defaultlib=",
+                "-debuglib="
+            ],
+            "lflags-windows": [
+                "/INCLUDE:main"
+            ],
+            "lflags-linux": [
+                "--undefined=main"
+            ]
+        }
     ],
     
     "-ddoxTool": "scod"
