@@ -42,6 +42,7 @@ public
     import rtld.core.mutex;
     import rtld.core.ownership;
     import rtld.core.process;
+    import rtld.core.stream;
     import rtld.core.thread;
     import rtld.core.tls;
     import rtld.core.traits;

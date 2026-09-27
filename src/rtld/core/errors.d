@@ -35,9 +35,9 @@ import rtld.core.io;
 import rtld.core.process;
 
 pragma(inline, true)
-void error(string msg) nothrow @nogc
+void error(A...)(string fmt, A args) nothrow @nogc
 {
-    stdout.printStrLn(msg);
+    stdout.printFmtLn(fmt, args);
     exit(1);
 }
 

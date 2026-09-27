@@ -185,58 +185,62 @@ private void printArg(T)(OutputStream stream, T arg, bool quote) @nogc nothrow
     }
     else static if (isInteger!T)
     {
-        if (arg == 0)
+        Unqual!T a = arg;
+        
+        if (a == 0)
         {
             printStr(stream, "0");
             return;
         }
         
-        if (arg < 0)
+        if (a < 0)
         {
             printStr(stream, "-");
-            arg = cast(T)-arg;
+            a = cast(T)-a;
         }
         
         char[20] buf;
         size_t pos = buf.length;
         
-        while(arg > 0)
+        while(a > 0)
         {
             pos--;
-            buf[pos] = cast(char)('0' + (arg % 10));
-            arg /= 10;
+            buf[pos] = cast(char)('0' + (a % 10));
+            a /= 10;
         }
         
         printStr(stream, cast(string)buf[pos..$]);
     }
     else static if (isFloatingPoint!T)
     {
-        if (arg != arg)
+        Unqual!T a = arg;
+        
+        if (a != a)
         {
             printStr(stream, "nan");
             return;
         }
-        if (arg == T.infinity)
+        if (a == T.infinity)
         {
             printStr(stream, "inf");
             return;
         }
-        if (arg == -T.infinity)
+        if (a == -T.infinity)
         {
             printStr(stream, "-inf");
             return;
         }
-        if (arg < 0)
+        if (a < 0)
         {
             printStr(stream, "-");
-            arg = -arg;
+            a = -a;
         }
 
-        long integerPart = cast(long)arg;
+        long integerPart = cast(long)a;
         printArg(stream, integerPart, false);
         printStr(stream, ".");
 
-        double fractionalPart = arg - integerPart;
+        double fractionalPart = a - integerPart;
         int precision = 6;
         
         char[20] buf;

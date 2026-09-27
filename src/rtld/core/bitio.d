@@ -112,7 +112,7 @@ unittest
 /**
  * Byte operations
  */
-version (BigEndian)
+version(BigEndian)
 {
     pragma(inline, true)
     ushort bigEndian(ushort value) pure nothrow @nogc
@@ -161,9 +161,35 @@ version (BigEndian)
     {
         assert(networkByteOrder(cast(uint)0x000000FF) == cast(uint)0x000000FF);
     }
+    
+    ///
+    T littleEndianToNative(T)(const(ubyte)[] data) pure nothrow @nogc
+    {
+        static assert(T.sizeof == data.length);
+
+        T result;
+
+        static foreach (i; 0..T.sizeof)
+            result |= cast(T)data[i] << ((T.sizeof - 1 - i) * 8);
+
+        return result;
+    }
+
+    ///
+    T bigEndianToNative(T)(const(ubyte)[] data) pure nothrow @nogc
+    {
+        static assert(T.sizeof == data.length);
+
+        T result;
+
+        static foreach (i; 0..T.sizeof)
+            result |= cast(T)data[i] << (i * 8);
+
+        return result;
+    }
 }
 
-version (LittleEndian)
+version(LittleEndian)
 {
     pragma(inline, true)
     ushort bigEndian(ushort value) pure nothrow @nogc
@@ -215,8 +241,33 @@ version (LittleEndian)
     {
         assert(networkByteOrder(cast(uint)0x000000FF) == cast(uint)0xFF000000);
     }
-}
+    
+    ///
+    T littleEndianToNative(T)(const(ubyte)[] data) pure nothrow @nogc
+    {
+        static assert(T.sizeof == data.length);
 
+        T result;
+
+        static foreach (i; 0..T.sizeof)
+            result |= cast(T)data[i] << (i * 8);
+
+        return result;
+    }
+
+    ///
+    T bigEndianToNative(T)(const(ubyte)[] data) pure nothrow @nogc
+    {
+        static assert(T.sizeof == data.length);
+
+        T result;
+
+        static foreach (i; 0..T.sizeof)
+            result |= cast(T)data[i] << ((T.sizeof - 1 - i) * 8);
+
+        return result;
+    }
+}
 
 /**
  * Returns 16-bit integer n with swapped endianness

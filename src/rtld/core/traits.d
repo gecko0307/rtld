@@ -28,18 +28,6 @@ DEALINGS IN THE SOFTWARE.
 module rtld.core.traits;
 
 ///
-/*
-template Unqual(T)
-{
-    static if (is(T U == const U) || is(T U == immutable U) ||
-               is(T U == shared U) || is(T U == inout U))
-        alias Unqual = U;
-    else
-        alias Unqual = T;
-}
-*/
-
-///
 template Unqual(T: const U, U)
 {
     alias Unqual = U;
