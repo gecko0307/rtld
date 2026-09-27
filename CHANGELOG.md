@@ -2,13 +2,18 @@ RTLD 0.7.0 - TBD
 ----------------
 * **rtld.core**
   * Basic formatting specs support for printing integers in hex or binary and floats with arbitrary precision: `{0:x}`, `{0:X}`, `{0:b}`, `{0:f2}`
+* **rtld.memory**
+  * New method `Arena.totalSize`
 * **rtld.logger**
   * Built-in logger (`rtld.logger.logger`)
 * **rtld.data**
+  * Optimize JSON parser (now ~25x faster!)
   * `Varint.print`
 * **rtld.time**
   * `Stopwatch`
-  * Time unit conversion functions.
+  * Time unit conversion functions
+* **rtld:runtime**
+  * Fix deallocation through interfaces.
 
 RTLD 0.6.1 - 26 Sep, 2026
 -------------------------
