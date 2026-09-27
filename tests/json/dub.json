@@ -1,13 +1,17 @@
 {
     "name": "test",
-    "description": "RTLD file I/O test",
+    "description": "RTLD JSON test",
     "homepage": "",
     "license": "BSL-1.0",
     "authors": [
         "Timur Gafarov"
     ],
     "dependencies": {
-        "rtld": { "path": "../.." }
+        "rtld": { "path": "../.." },
+        "rtld:runtime": { "path": "../.." }
+    },
+    "subConfigurations": {
+        "rtld": "no-druntime"
     },
     
     "importPaths": [
@@ -20,6 +24,11 @@
     
     "buildRequirements": [
         "allowWarnings"
+    ],
+    
+    "dflags": [
+        "-defaultlib=",
+        "-debuglib="
     ],
     
     "lflags-linux": ["-rpath=$$ORIGIN"]

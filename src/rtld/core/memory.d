@@ -322,11 +322,18 @@ else
             return;
         
         Object o;
-        static if (is(T == interface))
-            o = _d_toObject(cast(void*)obj);
+        version(Phobos)
+        {
+            o = cast(Object)obj;
+        }
         else
-            o = obj;
-
+        {
+            static if (is(T == interface))
+                o = _d_toObject(cast(void*)obj);
+            else
+                o = obj;
+        }
+        
         void* memory = cast(void*)o;
         size_t objectSize = typeid(o).initializer.length;
         size_t allocSize = objectSize;
