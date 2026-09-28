@@ -3,6 +3,8 @@ RTLD 0.8.0 - TBD
 * **rtld.core**
   * New module `rtld.core.stream`
   * New functions `littleEndianToNative`, `bigEndianToNative` in `rtld.core.bitio`
+* **rtld.container**
+  * Fix `Array.removeKey`
 * **Building**
   * druntime replacement workflow changed, see README.md.
 
