@@ -33,7 +33,7 @@ RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dl
 
 ## Usage
 
-By default RTLD can be used with Phobos as a normal source package:
+RTLD can be used in two ways. By default it is a normal, Phobos-compatible library:
 
 ```json
 "dependencies": {
