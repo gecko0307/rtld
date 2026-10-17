@@ -10,7 +10,7 @@ RTLD aims to be an alternative runtime library for D, a partial replacement for 
 
 RTLD supports Windows and POSIX systems and currently targets x86_64 and AArch64. Some parts of it are also platform-agnostic and can be used on bare metal.
 
-RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dlib) and will be a backend for the future dlib 2.0.
+RTLD is designed in a very similar way to [dlib](https://github.com/gecko0307/dlib) and will be a backend for the future [dlib 2.0](https://github.com/gecko0307/dlib2).
 
 ## Features
 
