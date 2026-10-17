@@ -1,5 +1,5 @@
-RTLD 0.8.0 - TBD
-----------------
+RTLD 0.8.0 - 17 Oct, 2026
+-------------------------
 * **rtld.core**
   * New module `rtld.core.stream`
   * New functions `littleEndianToNative`, `bigEndianToNative` in `rtld.core.bitio`
