@@ -886,7 +886,7 @@ T copysignFallback(T, R)(T mag, R sgn) pure nothrow @nogc
 
 version(unittest)
 {
-    // Don't importing directly because of conflicting symbols
+    // Not importing directly because of conflicting symbols
     import stdmath = std.math;
     
     import std.algorithm: map, cartesianProduct;
