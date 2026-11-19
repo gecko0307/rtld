@@ -39,6 +39,7 @@ import rtld.core.memory;
 import rtld.core.errors;
 import rtld.core.bitio;
 import rtld.libc.string;
+import rtld.math.utils;
 
 alias StreamPos = ulong;
 alias StreamSize = ulong;
@@ -258,8 +259,6 @@ StreamSize copyFromTo(InputStream input, OutputStream output)
  */
 class ArrayStream: InputStream
 {
-    import std.algorithm;
-
     /// Constructor. Initializes stream as empty.
     this()
     {
@@ -301,7 +300,7 @@ class ArrayStream: InputStream
     {
         import core.stdc.string;
         
-        count = min(count, size_ - pos);
+        count = min2(count, size_ - pos);
         
         memcpy(buffer, data.ptr + pos, count);
         

@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.
  */
 module rtld.container.hashmap;
 
-import std.traits;
+import rtld.core.traits;
 
 import rtld.core.memory;
 import rtld.core.ownership;
