@@ -69,7 +69,7 @@ void main()
 }
 ```
 
-Reading a file to string:
+Reading a file to a GC-free string:
 
 ```d
 String s = String.fromFile("file.txt");
