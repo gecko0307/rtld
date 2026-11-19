@@ -52,7 +52,7 @@ struct Varint
     }
     
     ///
-    void print(OutputStream stream) @nogc nothrow
+    void print(OutputFileStream stream) @nogc nothrow
     {
         ulong i = decodeVarint(this);
         .print(stream, i);

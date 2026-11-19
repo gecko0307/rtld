@@ -17,7 +17,7 @@ class SomeClass
         this.data = data;
     }
     
-    void print(OutputStream stream) @nogc nothrow
+    void print(OutputFileStream stream) @nogc nothrow
     {
         .printFmt(stream, "SomeClass: {0}", data);
     }

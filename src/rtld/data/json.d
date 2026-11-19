@@ -238,7 +238,7 @@ struct JSONValue
     JSONType type;
     
     ///
-    void print(OutputStream stream) @nogc nothrow
+    void print(OutputFileStream stream) @nogc nothrow
     {
         switch(type)
         {

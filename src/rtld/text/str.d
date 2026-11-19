@@ -276,7 +276,7 @@ struct String
     alias toString this;
     
     ///
-    void print(OutputStream stream) @nogc nothrow
+    void print(OutputFileStream stream) @nogc nothrow
     {
         .printStr(stream, toString);
     }

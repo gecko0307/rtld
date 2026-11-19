@@ -46,7 +46,7 @@ else version(Posix)
  * A generic output target.
  * Obtained via `stdout`, `stderr`, or `File.open(filemame, FileAccessMode.Write)`.
  */
-alias OutputStream = File;
+alias OutputFileStream = File;
 
 /**
  * A generic input target.
@@ -56,8 +56,8 @@ alias InputStream = File;
 
 private __gshared
 {
-    OutputStream _stdout;
-    OutputStream _stderr;
+    OutputFileStream _stdout;
+    OutputFileStream _stderr;
     InputStream _stdin;
     bool _stdStreamsInitialized = false;
 }
@@ -94,13 +94,13 @@ void finalize() @nogc nothrow
 }
 
 /// The process's standard output stream.
-@property OutputStream stdout() @nogc nothrow
+@property OutputFileStream stdout() @nogc nothrow
 {
     return _stdout;
 }
 
 /// The process's standard error stream.
-@property OutputStream stderr() @nogc nothrow
+@property OutputFileStream stderr() @nogc nothrow
 {
     return _stderr;
 }
@@ -112,7 +112,7 @@ void finalize() @nogc nothrow
 }
 
 ///
-void printStr(OutputStream stream, const(char)[] msg) @nogc nothrow
+void printStr(OutputFileStream stream, const(char)[] msg) @nogc nothrow
 {
     if (msg.length == 0 || !stream.isValid())
         return;
@@ -137,7 +137,7 @@ void printStr(const(char)[] msg) @nogc nothrow
 
 ///
 pragma(inline, true)
-void printStrLn(OutputStream stream, const(char)[] msg) @nogc nothrow
+void printStrLn(OutputFileStream stream, const(char)[] msg) @nogc nothrow
 {
     printStr(stream, msg);
     printStr(stream, "\n");
@@ -151,7 +151,7 @@ void printStrLn(const(char)[] msg) @nogc nothrow
 }
 
 ///
-private void printArg(T)(OutputStream stream, T arg, bool quote) @nogc nothrow
+private void printArg(T)(OutputFileStream stream, T arg, bool quote) @nogc nothrow
 {
     static if (isString!T)
     {
@@ -380,7 +380,7 @@ private void printArg(T)(OutputStream stream, T arg, bool quote) @nogc nothrow
 }
 
 ///
-private void printArgSpec(T)(OutputStream stream, T arg, const(char)[] spec) @nogc nothrow
+private void printArgSpec(T)(OutputFileStream stream, T arg, const(char)[] spec) @nogc nothrow
 {
     if (spec.length == 0)
     {
@@ -426,7 +426,7 @@ private void printArgSpec(T)(OutputStream stream, T arg, const(char)[] spec) @no
     printArg(stream, arg, false); // unknown spec, or non-numeric type: default formatting
 }
 
-private void printHex(OutputStream stream, ulong value, bool uppercase) @nogc nothrow
+private void printHex(OutputFileStream stream, ulong value, bool uppercase) @nogc nothrow
 {
     if (value == 0) { printStr(stream, "0"); return; }
 
@@ -444,7 +444,7 @@ private void printHex(OutputStream stream, ulong value, bool uppercase) @nogc no
     printStr(stream, cast(string)buf[pos..$]);
 }
 
-private void printBinary(OutputStream stream, ulong value) @nogc nothrow
+private void printBinary(OutputFileStream stream, ulong value) @nogc nothrow
 {
     if (value == 0)
     {
@@ -462,7 +462,7 @@ private void printBinary(OutputStream stream, ulong value) @nogc nothrow
     printStr(stream, cast(string)buf[pos..$]);
 }
 
-private void printFloatFixed(OutputStream stream, double arg, int precision) @nogc nothrow
+private void printFloatFixed(OutputFileStream stream, double arg, int precision) @nogc nothrow
 {
     if (arg != arg) { printStr(stream, "nan"); return; }
     if (arg == double.infinity)  { printStr(stream, "inf");  return; }
@@ -492,7 +492,7 @@ private void printFloatFixed(OutputStream stream, double arg, int precision) @no
 
 ///
 pragma(inline, true)
-void print(A...)(OutputStream stream, A args) @nogc nothrow
+void print(A...)(OutputFileStream stream, A args) @nogc nothrow
 {
     static foreach(arg; args)
         printArg(stream, arg, false);
@@ -501,14 +501,14 @@ void print(A...)(OutputStream stream, A args) @nogc nothrow
 ///
 pragma(inline, true)
 void print(Args...)(Args args) @nogc nothrow
-    if (Args.length > 0 && !is(Args[0] == OutputStream))
+    if (Args.length > 0 && !is(Args[0] == OutputFileStream))
 {
     .print(_stdout, args);
 }
 
 ///
 pragma(inline, true)
-void printLn(A...)(OutputStream stream, A args) @nogc nothrow
+void printLn(A...)(OutputFileStream stream, A args) @nogc nothrow
 {
     static foreach(arg; args)
         printArg(stream, arg, false);
@@ -518,13 +518,13 @@ void printLn(A...)(OutputStream stream, A args) @nogc nothrow
 ///
 pragma(inline, true)
 void printLn(Args...)(Args args) @nogc nothrow
-    if (Args.length > 0 && !is(Args[0] == OutputStream))
+    if (Args.length > 0 && !is(Args[0] == OutputFileStream))
 {
     .printLn(_stdout, args);
 }
 
 ///
-void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
+void printFmt(Args...)(OutputFileStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
     size_t lastIdx = 0;
 
@@ -591,7 +591,7 @@ void printFmt(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc 
 
 ///
 pragma(inline, true)
-void printFmtLn(Args...)(OutputStream stream, const(char)[] fmt, Args args) @nogc nothrow
+void printFmtLn(Args...)(OutputFileStream stream, const(char)[] fmt, Args args) @nogc nothrow
 {
     printFmt(stream, fmt, args);
     printStr(stream, "\n");
