@@ -52,13 +52,13 @@ alias OutputFileStream = File;
  * A generic input target.
  * Obtained via `stdin` or `File.open(filemame, FileAccessMode.Read)`.
  */
-alias InputStream = File;
+alias InputFileStream = File;
 
 private __gshared
 {
     OutputFileStream _stdout;
     OutputFileStream _stderr;
-    InputStream _stdin;
+    InputFileStream _stdin;
     bool _stdStreamsInitialized = false;
 }
 
@@ -106,7 +106,7 @@ void finalize() @nogc nothrow
 }
 
 /// The process's standard input stream.
-@property InputStream stdin() @nogc nothrow
+@property InputFileStream stdin() @nogc nothrow
 {
     return _stdin;
 }
@@ -605,7 +605,7 @@ void printFmtLn(Args...)(const(char)[] fmt, Args args) @nogc nothrow
 }
 
 ///
-size_t readRaw(InputStream stream, void[] buffer) @nogc nothrow
+size_t readRaw(InputFileStream stream, void[] buffer) @nogc nothrow
 {
     FileIOResult result = stream.read(buffer);
     if (result.success)
@@ -618,13 +618,13 @@ size_t readRaw(InputStream stream, void[] buffer) @nogc nothrow
 struct LineReader
 {
    private:
-    InputStream _stream;
+    InputFileStream _stream;
     char[256] _buf = void;
     size_t _start = 0;
     size_t _end = 0;
 
    public:
-    this(InputStream stream) @nogc nothrow
+    this(InputFileStream stream) @nogc nothrow
     {
         _stream = stream;
     }
