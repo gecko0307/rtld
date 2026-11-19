@@ -1,3 +1,9 @@
+RTLD 0.8.1 - 19 Nov, 2026
+-------------------------
+Bugfix release.
+* Remove accidental Phobos imports
+* Fix naming conflicts between `rtld.core.io` and `rtld.core.stream` (rename `OutputStream` to `OutputFileStream`).
+
 RTLD 0.8.0 - 17 Oct, 2026
 -------------------------
 * **rtld.core**
