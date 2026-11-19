@@ -205,7 +205,7 @@ private string levelToString(LogLevel level) @nogc nothrow
 }
 
 pragma(inline, true)
-private void logLine(alias printerFunc, Args...)(OutputStream stream, string levelStr, string timestampStr, Args args)
+private void logLine(alias printerFunc, Args...)(OutputFileStream stream, string levelStr, string timestampStr, Args args)
 {
     if (_logOutputOptions.printTimestamp)
         print(stream, timestampStr, " ");
